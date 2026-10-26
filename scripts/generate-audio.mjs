@@ -11,6 +11,7 @@
 //   FORCE    1 なら変更がなくても作り直す
 //   RATE     話す速さ（0.25〜2.0、既定 0.95）
 import { createClient } from '@supabase/supabase-js'
+import { execFileSync } from 'node:child_process'
 import { createHash, createSign } from 'node:crypto'
 
 // --- src の設定を読み込む（Node 22 の型除去で .ts を直接 import） ---
@@ -30,6 +31,19 @@ const LIMIT = Number(env('LIMIT', '0')) || Infinity
 const FORCE = env('FORCE', '') === '1' || env('FORCE', '') === 'true'
 const RATE = Number(env('RATE', '0.95')) || 0.95
 const BUCKET = 'audio'
+const BITRATE = env('BITRATE', '96k')
+const QUALITY = `wav24k-mp3-${BITRATE}`
+
+/** WAV → MP3（モノラル・96kbps・前後の無音を短く整える） */
+function toMp3(wav) {
+  return execFileSync(
+    'ffmpeg',
+    ['-hide_banner', '-loglevel', 'error', '-f', 'wav', '-i', 'pipe:0',
+     '-af', 'silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse,adelay=60|60,apad=pad_dur=0.12',
+     '-ac', '1', '-c:a', 'libmp3lame', '-b:a', BITRATE, '-f', 'mp3', 'pipe:1'],
+    { input: wav, maxBuffer: 64 * 1024 * 1024 },
+  )
+}
 
 const sb = createClient(SUPABASE_URL, SECRET, { auth: { persistSession: false } })
 
@@ -69,10 +83,11 @@ async function synth(text, lang, voice) {
       body: JSON.stringify({
         input: { text },
         voice: { languageCode: lang, name: `${lang}-Chirp3-HD-${voice}` },
-        audioConfig: { audioEncoding: 'MP3', speakingRate: RATE },
+        // MP3 で受け取ると 32kbps 固定で音質が落ちるため、無圧縮（WAV）で受け取って自前で変換する
+        audioConfig: { audioEncoding: 'LINEAR16', sampleRateHertz: 24000, speakingRate: RATE },
       }),
     })
-    if (res.ok) return Buffer.from((await res.json()).audioContent, 'base64')
+    if (res.ok) return toMp3(Buffer.from((await res.json()).audioContent, 'base64'))
     const body = await res.text()
     if ((res.status === 429 || res.status >= 500) && attempt < 5) {
       await new Promise((r) => setTimeout(r, 2000 * attempt))
@@ -123,7 +138,7 @@ outer: for (const v of voices) {
       const c = clipText(w, kind)
       if (!c || !c.text) continue
       const path = clipPath(v.key, w.id, kind)
-      const hash = createHash('sha1').update(`${v.voice}|${c.lang}|${RATE}|${c.text}`).digest('hex').slice(0, 12)
+      const hash = createHash('sha1').update(`${v.voice}|${c.lang}|${RATE}|${QUALITY}|${c.text}`).digest('hex').slice(0, 12)
       if (!FORCE && manifest[path] === hash) {
         skipped++
         continue
