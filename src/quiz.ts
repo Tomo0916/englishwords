@@ -21,7 +21,8 @@ export function findTarget(w: Word): { tokens: string[]; index: number } | null 
   const head = w.word.toLowerCase()
   const forms = (w.forms ?? []).map((f) => strip(f.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '')))
   const formsFull = (w.forms ?? []).map((f) => strip(f.replace(/\[.*?\]/g, '').replace(/[()]/g, '')))
-  const stem = head.length > 3 ? head.replace(/(e|y)$/, '') : head
+  // 語尾変化の候補：decide→decid(ed)、study→studi(es)、try→tri(ed)
+  const stems = [head, head.replace(/e$/, ''), head.replace(/y$/, 'i')].filter((s) => s.length >= 2)
   // 熟語・複数語の見出し（例：table tennis）は対象外
   if (head.includes(' ')) return null
   for (let i = 0; i < tokens.length; i++) {
@@ -31,7 +32,7 @@ export function findTarget(w: Word): { tokens: string[]; index: number } | null 
   }
   for (let i = 0; i < tokens.length; i++) {
     const t = strip(tokens[i])
-    if (t.startsWith(stem) && t.length - stem.length <= 4) return { tokens, index: i }
+    if (stems.some((st) => t.startsWith(st) && t.length - st.length <= 4)) return { tokens, index: i }
   }
   return null
 }
