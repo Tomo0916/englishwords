@@ -28,7 +28,7 @@ export function findTarget(w: Word): { tokens: string[]; index: number } | null 
   for (let i = 0; i < tokens.length; i++) {
     const t = strip(tokens[i]).replace(/'s$/, '')
     if (!t) continue
-    if (t === head || forms.includes(t) || formsFull.includes(t)) return { tokens, index: i }
+    if (t === head || forms.includes(t) || formsFull.includes(t) || t.split('-').includes(head)) return { tokens, index: i }
   }
   for (let i = 0; i < tokens.length; i++) {
     const t = strip(tokens[i])
