@@ -22,7 +22,9 @@ export function findTarget(w: Word): { tokens: string[]; index: number } | null 
   const forms = (w.forms ?? []).map((f) => strip(f.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '')))
   const formsFull = (w.forms ?? []).map((f) => strip(f.replace(/\[.*?\]/g, '').replace(/[()]/g, '')))
   // 語尾変化の候補：decide→decid(ed)、study→studi(es)、try→tri(ed)
-  const stems = [head, head.replace(/e$/, ''), head.replace(/y$/, 'i')].filter((s) => s.length >= 2)
+  const stems = [head, head.replace(/e$/, ''), head.replace(/y$/, 'i'), head.replace(/man$/, 'men')].filter((s) => s.length >= 2)
+  const irregular: Record<string, string> = { foot: 'feet', tooth: 'teeth', goose: 'geese', mouse: 'mice', child: 'children', person: 'people' }
+  if (irregular[head]) forms.push(irregular[head])
   // 熟語・複数語の見出し（例：table tennis）は対象外
   if (head.includes(' ')) return null
   for (let i = 0; i < tokens.length; i++) {
