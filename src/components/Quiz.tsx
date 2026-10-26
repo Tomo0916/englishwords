@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { record } from '../progress'
 import {
   cleanForm,
+  DEFAULT_FORM_LABELS,
   findTarget,
   formMatches,
   highlightJa,
@@ -13,6 +14,7 @@ import {
   posText,
   shuffle,
   targetSurface,
+  wordLabel,
 } from '../quiz'
 import { useSettings } from '../settings'
 import { speak, stopSpeaking } from '../speech'
@@ -125,7 +127,7 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
       <div className="quiz-meta">
         <span className="mode-pill">{MODE_LABEL[q.mode]}</span>
         <span>
-          No.{q.word.id}・p.{q.word.page}
+          {wordLabel(q.word)}・p.{q.word.page}
         </span>
         <span className="score">正解 {done}</span>
       </div>
@@ -217,7 +219,7 @@ function ChoiceQ({ q, pool, phase, onAnswer, timeLimit }: QProps) {
             {w.word}
             <SpeakButton text={w.word} />
           </div>
-          <div className="prompt-sub">[{w.ipa}]</div>
+          {w.ipa && <div className="prompt-sub">[{w.ipa}]</div>}
         </div>
       )}
       {mode === 'ja2en' && (
@@ -417,17 +419,20 @@ function SpellQ({ q, phase, onAnswer }: QProps) {
 function FormsQ({ q, phase, onAnswer }: QProps) {
   const w = q.word
   const forms = w.forms!
-  const [past, setPast] = useState('')
-  const [pp, setPp] = useState('')
+  const labels = w.formLabels ?? DEFAULT_FORM_LABELS
+  // 1つ目を問題として見せ、残り（「—」以外）を答えさせる
+  const asks = forms.map((f, i) => ({ f, i })).filter(({ f, i }) => i > 0 && f !== '—')
+  const [vals, setVals] = useState<string[]>(() => asks.map(() => ''))
   const answered = phase.kind === 'feedback'
-  const ok1 = formMatches(past, forms[1])
-  const ok2 = formMatches(pp, forms[2])
+  const oks = asks.map(({ f }, k) => formMatches(vals[k], f))
+  const filled = vals.every((v) => v.trim())
   return (
     <div className="question">
       <div className="prompt">
+        <div className="prompt-sub">{labels[0]}</div>
         <div className="prompt-word" lang="en">
           {cleanForm(forms[0])}
-          <SpeakButton text={w.word} />
+          <SpeakButton text={cleanForm(forms[0]).replace(/[()]/g, '')} />
         </div>
         <div className="prompt-sub">{meaningText(w)}</div>
       </div>
@@ -435,25 +440,33 @@ function FormsQ({ q, phase, onAnswer }: QProps) {
         className="forms-q"
         onSubmit={(e) => {
           e.preventDefault()
-          if (!answered && past.trim() && pp.trim()) onAnswer(ok1 && ok2)
+          if (!answered && filled) onAnswer(oks.every(Boolean))
         }}
       >
-        <label>
-          過去形
-          <input autoFocus value={past} onChange={(e) => setPast(e.target.value)} disabled={answered} autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} lang="en" className={answered ? (ok1 ? 'right' : 'wrong') : ''} />
-          {answered && !ok1 && <span className="fix">{cleanForm(forms[1])}</span>}
-        </label>
-        <label>
-          過去分詞形
-          <input value={pp} onChange={(e) => setPp(e.target.value)} disabled={answered} autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} lang="en" className={answered ? (ok2 ? 'right' : 'wrong') : ''} />
-          {answered && !ok2 && <span className="fix">{cleanForm(forms[2])}</span>}
-        </label>
+        {asks.map(({ f, i }, k) => (
+          <label key={i}>
+            {labels[i] ?? ''}
+            <input
+              autoFocus={k === 0}
+              value={vals[k]}
+              onChange={(e) => setVals(vals.map((v, j) => (j === k ? e.target.value : v)))}
+              disabled={answered}
+              autoCapitalize="none"
+              autoCorrect="off"
+              autoComplete="off"
+              spellCheck={false}
+              lang="en"
+              className={answered ? (oks[k] ? 'right' : 'wrong') : ''}
+            />
+            {answered && !oks[k] && <span className="fix">{cleanForm(f)}</span>}
+          </label>
+        ))}
         {!answered && (
           <div className="row">
             <button type="button" className="ghost" onClick={() => onAnswer(false)}>
               わからない
             </button>
-            <button className="primary" disabled={!past.trim() || !pp.trim()}>
+            <button className="primary" disabled={!filled}>
               答え合わせ
             </button>
           </div>

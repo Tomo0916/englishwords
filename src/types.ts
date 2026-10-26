@@ -30,6 +30,12 @@ export interface Word {
   meanings: Meaning[]
   related: Related[]
   forms: string[] | null
+  /** 活用形モードの見出し（省略時は 原形・過去形・過去分詞形） */
+  formLabels?: string[]
+  /** 付録のカテゴリ（季節・からだ など） */
+  category?: string
+  /** 本編に同じ語がある場合の番号 */
+  mainId?: number
   note: string | null
   example: Example | null
   memo: string | null

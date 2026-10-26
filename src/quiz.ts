@@ -59,7 +59,7 @@ export function supports(w: Word, mode: Mode): boolean {
     case 'order':
       return !!w.example && w.example.en.split(/\s+/).length >= 3 && w.example.en.split(/\s+/).length <= 16
     case 'forms':
-      return !!w.forms && w.forms.length >= 3
+      return !!w.forms && w.forms.filter((f) => f !== '—').length >= 2
   }
 }
 
@@ -68,11 +68,13 @@ export function pickDistractors(target: Word, pool: Word[], n: number, key: (w: 
   const tKey = key(target)
   const pos = target.meanings[0]?.pos
   const cands = pool.filter((w) => w.id !== target.id && key(w) && key(w) !== tKey)
-  const same = shuffle(cands.filter((w) => w.meanings[0]?.pos === pos))
-  const other = shuffle(cands.filter((w) => w.meanings[0]?.pos !== pos))
+  const cat = target.category
+  const sameCat = cat ? shuffle(cands.filter((w) => w.category === cat)) : []
+  const same = shuffle(cands.filter((w) => w.meanings[0]?.pos === pos && (!cat || w.category !== cat)))
+  const other = shuffle(cands.filter((w) => w.meanings[0]?.pos !== pos && (!cat || w.category !== cat)))
   const out: Word[] = []
   const seen = new Set<string>([tKey])
-  for (const w of [...same, ...other]) {
+  for (const w of [...sameCat, ...same, ...other]) {
     const k = key(w)
     if (seen.has(k)) continue
     seen.add(k)
@@ -139,6 +141,11 @@ export function formMatches(answer: string, form: string): boolean {
 }
 
 export const cleanForm = (f: string) => f.replace(/\s*\[.*?\]/g, '')
+
+export const DEFAULT_FORM_LABELS = ['原形', '過去形', '過去分詞形']
+
+/** 番号表示：本編は No.xx、付録はカテゴリ */
+export const wordLabel = (w: Word) => (w.round === 13 ? `付録・${w.category ?? ''}` : `No.${w.id}`)
 
 /** 和訳の解答語を【】で示す */
 export function highlightJa(ja: string, answer: string): [string, string, string] {

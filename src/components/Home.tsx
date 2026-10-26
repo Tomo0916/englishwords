@@ -31,17 +31,25 @@ export function Home({ words, onStart, onList }: { words: Word[]; onStart: (o: S
   const [mode, setMode] = useState<Mode | 'mix'>('en2ja')
 
   const inRound = useMemo(() => words.filter((w) => round === 'all' || w.round === round), [words, round])
+  // 本編は10語ずつ（見開き単位）、付録はカテゴリ単位
   const sets = useMemo(() => {
-    const ids = inRound.map((w) => w.id)
-    const out: { key: number; from: number; to: number }[] = []
-    for (let i = 0; i < ids.length; i += 10) out.push({ key: i / 10, from: ids[i], to: ids[Math.min(i + 9, ids.length - 1)] })
+    const out: { key: number; label: string; ids: Set<number> }[] = []
+    if (round === 13) {
+      const cats = [...new Set(inRound.map((w) => w.category ?? ''))]
+      cats.forEach((c, k) => out.push({ key: k, label: c, ids: new Set(inRound.filter((w) => w.category === c).map((w) => w.id)) }))
+    } else {
+      for (let i = 0; i < inRound.length; i += 10) {
+        const chunk = inRound.slice(i, i + 10)
+        out.push({ key: i / 10, label: `${chunk[0].id}–${chunk[chunk.length - 1].id}`, ids: new Set(chunk.map((w) => w.id)) })
+      }
+    }
     return out
-  }, [inRound])
+  }, [inRound, round])
 
   const now = Date.now()
   const target = useMemo(() => {
     let ws = inRound
-    if (set !== 'all') ws = ws.slice(set * 10, set * 10 + 10)
+    if (set !== 'all') ws = ws.filter((w) => sets[set]?.ids.has(w.id))
     ws = ws.filter((w) => {
       const p = progress[String(w.id)]
       if (filter === 'due') return isDue(p, now)
@@ -50,7 +58,7 @@ export function Home({ words, onStart, onList }: { words: Word[]; onStart: (o: S
       return true
     })
     return ws.filter((w) => (mode === 'mix' ? true : supports(w, mode)))
-  }, [inRound, set, filter, mode, progress, now])
+  }, [inRound, set, sets, filter, mode, progress, now])
 
   const dueCount = words.filter((w) => isDue(progress[String(w.id)], now)).length
   const learned = words.filter((w) => (progress[String(w.id)]?.level ?? 0) >= 3).length
@@ -91,18 +99,18 @@ export function Home({ words, onStart, onList }: { words: Word[]; onStart: (o: S
         </button>
         {rounds.map((r) => (
           <button key={r} className={round === r ? 'on' : ''} onClick={() => (setRound(r), setSet('all'))}>
-            R{r}
+            {r === 13 ? '付録' : `R${r}`}
           </button>
         ))}
       </div>
       {round !== 'all' && (
         <div className="seg scroll small">
           <button className={set === 'all' ? 'on' : ''} onClick={() => setSet('all')}>
-            ROUND全体
+            {round === 13 ? '付録全体' : 'ROUND全体'}
           </button>
           {sets.map((s) => (
             <button key={s.key} className={set === s.key ? 'on' : ''} onClick={() => setSet(s.key)}>
-              {s.from}–{s.to}
+              {s.label}
             </button>
           ))}
         </div>
@@ -110,7 +118,7 @@ export function Home({ words, onStart, onList }: { words: Word[]; onStart: (o: S
       <RoundMeter words={inRound} progress={progress} />
       {round !== 'all' && (
         <button className="link" onClick={() => onList(round)}>
-          ROUND {round} の単語一覧を見る →
+          {round === 13 ? '付録' : `ROUND ${round}`} の単語一覧を見る →
         </button>
       )}
 

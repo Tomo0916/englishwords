@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { getProgress, setLevel, subscribe } from '../progress'
-import { cleanForm, highlightJa } from '../quiz'
+import { cleanForm, highlightJa, wordLabel } from '../quiz'
 import { speak } from '../speech'
 import type { Level, Word } from '../types'
 
@@ -48,7 +48,8 @@ export function WordCard({ w, compact = false }: { w: Word; compact?: boolean })
     <article className="card">
       <header className="card-head">
         <div className="card-no">
-          <span>No.{w.id}</span>
+          <span>{wordLabel(w)}</span>
+          {w.mainId && <span>本編 No.{w.mainId}</span>}
           <span className="page">p.{w.page}</span>
         </div>
         <Checks id={w.id} />
@@ -58,7 +59,7 @@ export function WordCard({ w, compact = false }: { w: Word; compact?: boolean })
         <SpeakButton text={w.word} />
       </div>
       <div className="pron">
-        <span className="ipa">[{w.ipa}]</span>
+        {w.ipa && <span className="ipa">[{w.ipa}]</span>}
         <span className="kana">{w.kana}</span>
         {w.warnings.map((k) => (
           <span key={k} className="warn">
@@ -77,7 +78,7 @@ export function WordCard({ w, compact = false }: { w: Word; compact?: boolean })
       {w.note && <p className="note">※ {w.note}</p>}
       {w.forms && (
         <p className="forms">
-          <span className="tag">活用</span>
+          <span className="tag">{w.formLabels ? w.formLabels.join('・') : '活用'}</span>
           <span lang="en">{w.forms.map(cleanForm).join(' - ')}</span>
         </p>
       )}

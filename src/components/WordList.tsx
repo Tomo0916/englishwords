@@ -15,7 +15,7 @@ export function WordList({ words, round, onBack }: { words: Word[]; round: numbe
         <button className="ghost" onClick={onBack}>
           ← 戻る
         </button>
-        <h2>ROUND {round}</h2>
+        <h2>{round === 13 ? '付録' : `ROUND ${round}`}</h2>
         <label className="toggle">
           <input type="checkbox" checked={hide} onChange={(e) => (setHide(e.target.checked), setRevealed(new Set()))} />
           赤シート
@@ -25,7 +25,7 @@ export function WordList({ words, round, onBack }: { words: Word[]; round: numbe
         {list.map((w) => (
           <li key={w.id} className={open === w.id ? 'open' : ''}>
             <div className="list-row" onClick={() => setOpen(open === w.id ? null : w.id)}>
-              <span className="no">{w.id}</span>
+              <span className="no">{round === 13 ? (w.category ?? '').slice(0, 2) : w.id}</span>
               <span className="en" lang="en">
                 {w.word}
               </span>
