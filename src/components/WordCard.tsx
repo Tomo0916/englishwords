@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { getProgress, setLevel, subscribe } from '../progress'
 import { cleanForm, highlightJa, wordLabel } from '../quiz'
-import { speak } from '../speech'
+import { playExample, playWord } from '../speech'
 import type { Level, Word } from '../types'
 
 const WARN: Record<string, string> = { accent: 'アクセント', pronunciation: '発音', usage: '語法', polysemy: '多義' }
@@ -31,9 +31,17 @@ export function Checks({ id }: { id: number }) {
   )
 }
 
-export function SpeakButton({ text, label = '発音を再生' }: { text: string; label?: string }) {
+/** 単語（kind="word"）または例文（kind="example"）を再生するボタン */
+export function SpeakButton({ w, kind = 'word', withJa = true, label }: { w: Word; kind?: 'word' | 'example'; withJa?: boolean; label?: string }) {
   return (
-    <button className="speak" aria-label={label} onClick={(e) => (e.stopPropagation(), speak(text))}>
+    <button
+      className="speak"
+      aria-label={label ?? (kind === 'word' ? '発音を再生' : '例文を再生')}
+      onClick={(e) => {
+        e.stopPropagation()
+        void (kind === 'word' ? playWord(w, withJa) : playExample(w, withJa))
+      }}
+    >
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
         <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" />
         <path d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" />
@@ -56,7 +64,7 @@ export function WordCard({ w, compact = false }: { w: Word; compact?: boolean })
       </header>
       <div className="headword">
         <h2 lang="en">{w.word}</h2>
-        <SpeakButton text={w.word} />
+        <SpeakButton w={w} />
       </div>
       <div className="pron">
         {w.ipa && <span className="ipa">[{w.ipa}]</span>}
@@ -98,7 +106,7 @@ export function WordCard({ w, compact = false }: { w: Word; compact?: boolean })
         <div className="example">
           <p lang="en" className="ex-en">
             {w.example.en}
-            <SpeakButton text={w.example.en} label="例文を再生" />
+            <SpeakButton w={w} kind="example" />
           </p>
           <p className="ex-ja">
             {pre}

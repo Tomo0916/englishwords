@@ -17,7 +17,7 @@ import {
   wordLabel,
 } from '../quiz'
 import { useSettings } from '../settings'
-import { speak, stopSpeaking } from '../speech'
+import { playExample, playWord, stopSpeaking } from '../speech'
 import type { Answer, Mode, Question, Word } from '../types'
 import { SpeakButton, WordCard } from './WordCard'
 
@@ -43,7 +43,7 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
   useEffect(() => {
     started.current = Date.now()
     setPhase({ kind: 'ask' })
-    if (q && settings.autoSpeak && (q.mode === 'en2ja' || q.mode === 'spell')) speak(q.word.word)
+    if (q && settings.autoSpeak && (q.mode === 'en2ja' || q.mode === 'spell')) void playWord(q.word, false)
     return () => stopSpeaking()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pos, q])
@@ -80,9 +80,9 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
       setPhase({ kind: 'feedback', correct, chosen })
       if (q.mode === 'en2ja' || q.mode === 'ja2en' || q.mode === 'cloze') {
         if (!settings.autoSpeak) return
-        if (q.mode === 'cloze' && q.word.example) speak(q.word.example.en)
-        else if (q.mode === 'ja2en') speak(q.word.word)
-      } else if (q.word.example && settings.autoSpeak && q.mode === 'order') speak(q.word.example.en)
+        if (q.mode === 'cloze' && q.word.example) void playExample(q.word, false)
+        else if (q.mode === 'ja2en') void playWord(q.word, false)
+      } else if (q.word.example && settings.autoSpeak && q.mode === 'order') void playExample(q.word, false)
     },
     [phase, q, answers, pos, settings],
   )
@@ -217,7 +217,7 @@ function ChoiceQ({ q, pool, phase, onAnswer, timeLimit }: QProps) {
         <div className="prompt">
           <div className="prompt-word" lang="en">
             {w.word}
-            <SpeakButton text={w.word} />
+            <SpeakButton w={w} withJa={false} />
           </div>
           {w.ipa && <div className="prompt-sub">[{w.ipa}]</div>}
         </div>
@@ -370,7 +370,7 @@ function SpellQ({ q, phase, onAnswer }: QProps) {
         <div className="prompt-ja">{meaningText(w)}</div>
         <div className="prompt-sub">
           {posText(w)}　{w.kana}
-          <SpeakButton text={w.word} />
+          <SpeakButton w={w} withJa={false} />
         </div>
         <div className="hint" lang="en">
           {shown}
@@ -432,7 +432,7 @@ function FormsQ({ q, phase, onAnswer }: QProps) {
         <div className="prompt-sub">{labels[0]}</div>
         <div className="prompt-word" lang="en">
           {cleanForm(forms[0])}
-          <SpeakButton text={cleanForm(forms[0]).replace(/[()]/g, '')} />
+          <SpeakButton w={w} withJa={false} />
         </div>
         <div className="prompt-sub">{meaningText(w)}</div>
       </div>

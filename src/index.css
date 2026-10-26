@@ -223,3 +223,6 @@ input.wrong { border-color: var(--ng) !important; background: var(--ng-soft) !im
 .settings .toggle { display: flex; color: var(--ink); font-size: 0.95rem; }
 .settings button { justify-self: start; margin-top: 8px; }
 .end-punct { align-self: center; font-size: 1.1rem; }
+.voice-pick { display: grid; gap: 6px; margin-bottom: 14px; }
+.voice-pick > span { font-size: 0.85rem; color: var(--ink-2); }
+.voice-pick .fine { margin: 0; }

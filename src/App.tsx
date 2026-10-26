@@ -9,6 +9,7 @@ import { loadWords } from './data'
 import { resetAll, sync } from './progress'
 import { setVocab, shuffle, supports } from './quiz'
 import { setSettings, useSettings } from './settings'
+import { availableVoices, clearAudioCache, playWord } from './speech'
 import { supabase } from './supabase'
 import type { Answer, Mode, Question, Word } from './types'
 
@@ -99,6 +100,30 @@ export default function App() {
               <input type="checkbox" checked={settings.autoSpeak} onChange={(e) => setSettings({ autoSpeak: e.target.checked })} />
               発音を自動で再生する
             </label>
+            <label className="toggle">
+              <input type="checkbox" checked={settings.readJa} onChange={(e) => setSettings({ readJa: e.target.checked })} />
+              英語のあとに日本語（意味・和訳）も読む
+            </label>
+            <div className="voice-pick">
+              <span>声</span>
+              <div className="seg">
+                {availableVoices().map((v) => (
+                  <button
+                    key={v.key}
+                    className={settings.voice === v.key ? 'on' : ''}
+                    onClick={() => {
+                      setSettings({ voice: v.key })
+                      const sample = words?.find((w) => w.id === 2)
+                      if (sample) void playWord(sample)
+                    }}
+                  >
+                    {v.label}
+                    {!v.ready && '（準備中）'}
+                  </button>
+                ))}
+              </div>
+              <p className="fine">準備中の声は、端末の標準の読み上げで代用します。</p>
+            </div>
             <label>
               4択の制限時間
               <select value={settings.timeLimit} onChange={(e) => setSettings({ timeLimit: Number(e.target.value) })}>
@@ -128,6 +153,9 @@ export default function App() {
                 </button>
               </p>
             )}
+            <button className="ghost" onClick={() => void clearAudioCache().then(() => window.alert('端末に保存した音声を消去しました'))}>
+              保存した音声を消去
+            </button>
             <button
               className="danger"
               onClick={() => {

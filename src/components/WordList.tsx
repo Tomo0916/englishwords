@@ -29,7 +29,7 @@ export function WordList({ words, round, onBack }: { words: Word[]; round: numbe
               <span className="en" lang="en">
                 {w.word}
               </span>
-              <SpeakButton text={w.word} />
+              <SpeakButton w={w} />
               <span
                 className={`ja ${hide && !revealed.has(w.id) ? 'sheet' : ''}`}
                 onClick={(e) => {

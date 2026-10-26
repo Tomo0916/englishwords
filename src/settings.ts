@@ -7,10 +7,14 @@ export interface Settings {
   count: number
   /** この秒数を超えた正解は「うろ覚え」扱い */
   slowSec: number
+  /** 音声の声（voices.ts の key） */
+  voice: string
+  /** 英語のあとに日本語の意味・和訳も読む */
+  readJa: boolean
 }
 
 const KEY = 'settings-v1'
-const DEFAULTS: Settings = { autoSpeak: true, timeLimit: 0, count: 20, slowSec: 5 }
+const DEFAULTS: Settings = { autoSpeak: true, timeLimit: 0, count: 20, slowSec: 5, voice: 'female', readJa: true }
 
 let current: Settings = (() => {
   try {
@@ -30,6 +34,8 @@ export function setSettings(patch: Partial<Settings>) {
   }
   ls.forEach((l) => l())
 }
+
+export const getSettings = () => current
 
 export function useSettings(): Settings {
   return useSyncExternalStore(

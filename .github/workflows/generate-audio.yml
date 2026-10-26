@@ -1,0 +1,42 @@
+name: Generate audio
+
+# 手動実行専用：GitHub の Actions タブ →「Generate audio」→ Run workflow
+on:
+  workflow_dispatch:
+    inputs:
+      voices:
+        description: '作る声（voices.ts の key をカンマ区切り。空欄ですべて）'
+        required: false
+        default: ''
+      limit:
+        description: '作る最大ファイル数（試しに少しだけ作るときに。空欄で全部）'
+        required: false
+        default: ''
+      force:
+        description: '変更がなくても全部作り直す'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Generate
+        run: node --experimental-strip-types scripts/generate-audio.mjs
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          VOICES: ${{ inputs.voices }}
+          LIMIT: ${{ inputs.limit }}
+          FORCE: ${{ inputs.force }}
