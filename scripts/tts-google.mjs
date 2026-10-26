@@ -47,9 +47,10 @@ export function toMp3(wav, bitrate = '96k') {
  * 音声を作る（WAV のバッファを返す）
  * @param {{text: string, lang: string, voice: string, rate?: number, ipa?: {phrase: string, ipa: string}[]}} o
  */
-export async function googleSynth({ text, lang, voice, rate = 0.95, ipa }) {
-  const input = { text }
-  if (ipa?.length)
+export async function googleSynth({ text, lang, voice, rate = 0.95, ipa, name, ssml }) {
+  // name を渡すと Chirp 以外の声（例 en-US-Studio-O、en-US-Neural2-F）。ssml を渡すと SSML で読ませる
+  const input = ssml ? { ssml } : { text }
+  if (ipa?.length && !ssml)
     input.customPronunciations = {
       pronunciations: ipa.map((p) => ({ phrase: p.phrase, phoneticEncoding: 'PHONETIC_ENCODING_IPA', pronunciation: p.ipa })),
     }
@@ -59,7 +60,7 @@ export async function googleSynth({ text, lang, voice, rate = 0.95, ipa }) {
       headers: { authorization: `Bearer ${await accessToken()}`, 'content-type': 'application/json' },
       body: JSON.stringify({
         input,
-        voice: { languageCode: lang, name: `${lang}-Chirp3-HD-${voice}` },
+        voice: { languageCode: lang, name: name ?? `${lang}-Chirp3-HD-${voice}` },
         audioConfig: { audioEncoding: 'LINEAR16', sampleRateHertz: 24000, speakingRate: rate },
       }),
     })
