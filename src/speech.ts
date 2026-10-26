@@ -34,7 +34,7 @@ function synthSpeak(text: string, lang: 'en-US' | 'ja-JP'): Promise<void> {
 }
 
 // ---------- 生成済み音声 ----------
-const CACHE = 'audio-v2' // 音声を作り直したら番号を上げる（端末の古い音声を使わないため）
+const CACHE = 'audio-v3' // 音声を作り直したら番号を上げる（端末の古い音声を使わないため）
 let ready: Record<string, boolean> | null = null
 let readyLoading: Promise<void> | null = null
 

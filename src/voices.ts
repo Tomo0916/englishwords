@@ -1,23 +1,28 @@
 /**
- * 音声のバリエーション。Google Cloud Text-to-Speech「Chirp 3: HD」の声を使う。
+ * 音声のバリエーション（Google Cloud Text-to-Speech）。
+ * 英語は聞き比べで一番安定していた「Studio」、日本語は Studio に声がないため「Chirp 3: HD」を使う。
  * 声を増やすときは、ここに1行足して GitHub Actions の「Generate audio」を実行するだけ。
- * 候補（2026年時点）
- *   女性: Achernar Aoede Autonoe Callirrhoe Despina Erinome Gacrux Kore Laomedeia Leda Pulcherrima Sulafat Vindemiatrix Zephyr
- *   男性: Achird Algenib Algieba Alnilam Charon Enceladus Fenrir Iapetus Orus Puck Rasalgethi Sadachbia Sadaltager Schedar Umbriel Zubenelgenubi
- * scripts/generate-audio.mjs もこのファイルを読む（key・voice・enabled を使用）
+ *   英語 Studio（en-US）: Studio-O（女性）、Studio-Q（男性）
+ *   日本語 Chirp 3: HD（ja-JP）: 女性 Kore Aoede Leda Zephyr …／男性 Charon Puck Fenrir Orus …
+ *   pitch は英語の高さを半音単位で上下（例 +2 で少し高め、-2 で少し低め）
+ * scripts/generate-audio.mjs もこのファイルを読む
  */
 export interface VoiceDef {
   /** 保存フォルダ名（変えると作り直しになる） */
   key: string
   /** 設定画面での表示名 */
   label: string
-  /** Chirp 3: HD の声の名前（英語・日本語とも同じ声を使う） */
-  voice: string
+  /** 英語の声（Google の voice name） */
+  en: string
+  /** 日本語の声（Google の voice name） */
+  ja: string
+  /** 英語の声の高さ（半音。省略で 0） */
+  pitch?: number
 }
 
 export const VOICES: VoiceDef[] = [
-  { key: 'female', label: '女性', voice: 'Kore' },
-  { key: 'male', label: '男性', voice: 'Charon' },
-  // 例：{ key: 'female-high', label: '女性（高め）', voice: 'Leda' },
-  // 例：{ key: 'male-low', label: '男性（低め）', voice: 'Algenib' },
+  { key: 'female', label: '女性', en: 'en-US-Studio-O', ja: 'ja-JP-Chirp3-HD-Kore' },
+  { key: 'male', label: '男性', en: 'en-US-Studio-Q', ja: 'ja-JP-Chirp3-HD-Charon' },
+  // 例：{ key: 'female-high', label: '女性（高め）', en: 'en-US-Studio-O', ja: 'ja-JP-Chirp3-HD-Leda', pitch: 2 },
+  // 例：{ key: 'male-low', label: '男性（低め）', en: 'en-US-Studio-Q', ja: 'ja-JP-Chirp3-HD-Orus', pitch: -2 },
 ]

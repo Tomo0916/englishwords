@@ -46,6 +46,8 @@ export function bookIpaToIpa(src) {
     .replace(/ɪː/g, 'iː').replace(/ʊː/g, 'uː')
     .replace(/r/g, 'ɹ')
     .replace(/g/g, 'ɡ')
+    .replace(/\([^)]*\)/g, '') // 省略可能な音 (ː)(i) は省く（アメリカ英語寄り）
+    .replace(/e(?!ɪ)/g, 'ɛ') // 短い「エ」は ɛ（eɪ はそのまま）
   return s
 }
 
