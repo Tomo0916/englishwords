@@ -50,7 +50,7 @@ data/                単語データ（gitignore）
 npm install
 # data/round01.json など（形式は src/types.ts の Word）を置いて
 SUPABASE_URL=https://ulsnntrtbclygydczmys.supabase.co \
-SUPABASE_SERVICE_ROLE_KEY=（Project Settings > API の service_role） \
+SUPABASE_SERVICE_ROLE_KEY=（API Keys の secret key：sb_secret_...） \
 node scripts/import-words.mjs
 ```
 
@@ -68,7 +68,7 @@ npm run dev
 1. Settings > Pages > Source を **GitHub Actions** に
 2. Settings > Secrets and variables > Actions > **Variables** に
    - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`（anon key は公開前提の鍵。データは RLS で守られる）
+   - `VITE_SUPABASE_ANON_KEY`（publishable key：sb_publishable_...。公開前提の鍵で、データは RLS で守られる）
 3. `main` に push すると自動デプロイ
 
 ## データ形式
