@@ -1,4 +1,4 @@
-export type Warning = 'accent' | 'pronunciation' | 'usage'
+export type Warning = 'accent' | 'pronunciation' | 'usage' | 'polysemy'
 
 export interface Meaning {
   pos: string // 名・動・形・副 など

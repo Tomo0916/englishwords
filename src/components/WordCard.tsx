@@ -4,7 +4,7 @@ import { cleanForm, highlightJa } from '../quiz'
 import { speak } from '../speech'
 import type { Level, Word } from '../types'
 
-const WARN: Record<string, string> = { accent: 'アクセント', pronunciation: '発音', usage: '語法' }
+const WARN: Record<string, string> = { accent: 'アクセント', pronunciation: '発音', usage: '語法', polysemy: '多義' }
 
 export function useProgress(id: number) {
   return useSyncExternalStore(subscribe, () => getProgress(id))
