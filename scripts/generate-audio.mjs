@@ -31,7 +31,7 @@ const onlyVoices = (env('VOICES', '') || '').split(',').map((s) => s.trim()).fil
 const LIMIT = Number(env('LIMIT', '0')) || Infinity
 const FORCE = env('FORCE', '') === '1' || env('FORCE', '') === 'true'
 const BUCKET = 'audio'
-const VERSION = 'v3-studio' // 作り方を変えたら上げる（全部作り直しになる）
+const VERSION = 'v4-studio-keeptail' // 作り方を変えたら上げる（全部作り直しになる）
 const RATE_EN = 0.95
 const RATE_JA = 1.0
 

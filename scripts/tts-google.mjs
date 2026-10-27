@@ -37,7 +37,8 @@ export function toMp3(wav, bitrate = '96k') {
   return execFileSync(
     'ffmpeg',
     ['-hide_banner', '-loglevel', 'error', '-i', 'pipe:0',
-     '-af', 'silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse,adelay=60|60,apad=pad_dur=0.12',
+     '-af', // 前後の長い無音だけを詰める。語頭の s・語尾の t などの小さな音を削らないよう、しきい値を低く（-65dB）し、前0.12秒・後0.25秒は残す
+     'silenceremove=start_periods=1:start_threshold=-65dB:start_silence=0.12,areverse,silenceremove=start_periods=1:start_threshold=-65dB:start_silence=0.25,areverse',
      '-ac', '1', '-c:a', 'libmp3lame', '-b:a', bitrate, '-f', 'mp3', 'pipe:1'],
     { input: wav, maxBuffer: 64 * 1024 * 1024 },
   )
