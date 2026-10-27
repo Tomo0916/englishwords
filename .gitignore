@@ -8,3 +8,7 @@ dev-dist
 # 本のデータは著作物のため、リポジトリに含めない
 public/local-data/
 data/
+
+# Mac が作るファイル
+.DS_Store
+*のエイリアス
