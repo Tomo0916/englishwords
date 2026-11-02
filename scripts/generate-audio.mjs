@@ -11,6 +11,7 @@
 //   VOICES   作る声の key をカンマ区切り（空ならすべて）  例: female
 //   LIMIT    作る最大ファイル数（試しに少しだけ作るとき）  例: 20
 //   FORCE    true なら変更がなくても作り直す
+//   CONCURRENCY 同時に作る数（既定 8）
 import { createClient } from '@supabase/supabase-js'
 import { createHash } from 'node:crypto'
 import { bookIpaToIpa } from './ipa.mjs'
@@ -30,6 +31,7 @@ if (!SUPABASE_URL || !SECRET || !env('GOOGLE_CREDENTIALS')) {
 const onlyVoices = (env('VOICES', '') || '').split(',').map((s) => s.trim()).filter(Boolean)
 const LIMIT = Number(env('LIMIT', '0')) || Infinity
 const FORCE = env('FORCE', '') === '1' || env('FORCE', '') === 'true'
+const CONCURRENCY = Number(env('CONCURRENCY', '8')) || 8 // 同時に作る数（Google の上限に当たると自動で待って再試行）
 const BUCKET = 'audio'
 const VERSION = 'v4-studio-keeptail' // 作り方を変えたら上げる（全部作り直しになる）
 const RATE_EN = 0.95
@@ -89,40 +91,64 @@ let failed = 0
 let chars = 0
 const started = Date.now()
 
-outer: for (const v of voices) {
-  console.log(`\n=== 声: ${v.label}（英語 ${v.en} ／ 日本語 ${v.ja}） ===`)
+// 作るものの一覧（変更がないものは飛ばす）
+const todo = []
+for (const v of voices) {
   for (const w of words) {
     for (const kind of CLIP_KINDS) {
       const req = request(w, kind, v)
       if (!req) continue
       const path = clipPath(v.key, w.id, kind)
       const hash = createHash('sha1').update(VERSION + JSON.stringify(req)).digest('hex').slice(0, 12)
-      if (!FORCE && manifest[path] === hash) {
-        skipped++
-        continue
+      if (!FORCE && manifest[path] === hash) skipped++
+      else if (todo.length < LIMIT) todo.push({ w, req, path, hash })
+    }
+  }
+}
+console.log(`作成予定 ${todo.length} 件（変更なし ${skipped} 件）／同時に ${CONCURRENCY} 件ずつ`)
+
+// 途中で止められても、そこまでの記録は残す
+let stopping = false
+for (const sig of ['SIGINT', 'SIGTERM'])
+  process.on(sig, async () => {
+    if (stopping) return
+    stopping = true
+    console.log('\n中断の合図を受けたので、ここまでの記録を保存します')
+    await saveManifest()
+    process.exit(1)
+  })
+
+let next = 0
+let saving = Promise.resolve()
+async function worker() {
+  while (!stopping && next < todo.length) {
+    const { w, req, path, hash } = todo[next++]
+    try {
+      const wav = await googleSynth({ lang: langOf(req.name), name: req.name, text: req.text, ssml: req.ssml, rate: req.rate })
+      const { error } = await sb.storage
+        .from(BUCKET)
+        .upload(path, toMp3(wav), { upsert: true, contentType: 'audio/mpeg', cacheControl: '31536000' })
+      if (error) throw error
+      manifest[path] = hash
+      made++
+      chars += (req.ssml ?? req.text).length
+      if (made % 200 === 0) {
+        saving = saving.then(saveManifest)
+        await saving
+        console.log(`  ${made} / ${todo.length} 件作成（${Math.round((Date.now() - started) / 1000)} 秒）`)
       }
-      if (made >= LIMIT) break outer
-      try {
-        const wav = await googleSynth({ lang: langOf(req.name), name: req.name, text: req.text, ssml: req.ssml, rate: req.rate })
-        const { error } = await sb.storage
-          .from(BUCKET)
-          .upload(path, toMp3(wav), { upsert: true, contentType: 'audio/mpeg', cacheControl: '31536000' })
-        if (error) throw error
-        manifest[path] = hash
-        made++
-        chars += (req.ssml ?? req.text).length
-      } catch (e) {
-        failed++
-        console.log(`  ✕ ${path}（${w.word}）: ${e.message.slice(0, 200)}`)
-        if (failed > 20) throw new Error('失敗が多すぎるので中断します')
-      }
-      if (made && made % 100 === 0) {
-        await saveManifest()
-        console.log(`  ${made} 件作成（${Math.round((Date.now() - started) / 1000)} 秒）`)
+    } catch (e) {
+      failed++
+      console.log(`  ✕ ${path}（${w.word}）: ${e.message.slice(0, 200)}`)
+      if (failed > 30) {
+        stopping = true
+        console.log('失敗が多すぎるので中断します')
       }
     }
   }
 }
+await Promise.all(Array.from({ length: CONCURRENCY }, worker))
+await saving
 await saveManifest()
 // アプリが「どの声が使えるか」を知るための一覧
 {
