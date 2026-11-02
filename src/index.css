@@ -156,6 +156,15 @@ h3 { font-size: 0.8rem; color: var(--ink-2); letter-spacing: 0.08em; margin: 22p
 
 .spell input, .forms-q input { width: 100%; padding: 14px; font-size: 1.3rem; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); margin-top: 14px; }
 .spell input:focus, .forms-q input:focus { outline: none; border-color: var(--accent); }
+/* スペル：ヒントの文字を入力欄の頭に固定表示 */
+.spell-box { display: flex; align-items: baseline; margin-top: 14px; padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); font-size: 1.3rem; cursor: text; }
+.spell-box:focus-within { border-color: var(--accent); }
+.spell-prefix { color: var(--ink-2); white-space: pre; }
+.spell-box input { font-family: Georgia, 'Times New Roman', serif; }
+.spell-box input::placeholder { font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif; font-size: 1rem; }
+.spell .spell-box input { border: none; background: transparent; margin: 0; padding: 14px 0; border-radius: 0; flex: 1; min-width: 0; font-size: inherit; }
+.spell-box.right { border-color: var(--ok); background: var(--ok-soft); }
+.spell-box.wrong { border-color: var(--ng); background: var(--ng-soft); }
 input.right { border-color: var(--ok) !important; background: var(--ok-soft) !important; }
 input.wrong { border-color: var(--ng) !important; background: var(--ng-soft) !important; }
 .forms-q label { display: block; margin-top: 10px; font-size: 0.85rem; color: var(--ink-2); }

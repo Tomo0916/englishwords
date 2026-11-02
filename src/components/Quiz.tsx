@@ -364,11 +364,22 @@ function SpellQ({ q, phase, onAnswer }: QProps) {
   const [val, setVal] = useState('')
   const [hint, setHint] = useState(1)
   const answered = phase.kind === 'feedback'
-  const ok = normalize(val) === normalize(w.word)
+  // ヒントで見せている文字は入力欄の頭に固定で表示し、続きだけを打てばよいようにする。
+  // 最初から全部打った場合（d を見て desk と打つ）も正解にする
+  const prefix = w.word.slice(0, hint)
+  const typed = prefix + val
+  const ok = normalize(typed) === normalize(w.word) || normalize(val) === normalize(w.word)
   const shown = w.word
     .split('')
     .map((c, i) => (i < hint || c === ' ' ? c : '_'))
     .join(' ')
+  const moreHint = () => {
+    const next = Math.min(w.word.length, hint + 1)
+    const added = w.word.slice(hint, next)
+    // すでに打っていた文字がヒントで出た文字と同じなら、二重にならないよう入力から外す
+    if (added && val.toLowerCase().startsWith(added.toLowerCase())) setVal(val.slice(added.length))
+    setHint(next)
+  }
   return (
     <div className="question">
       <div className="prompt">
@@ -385,25 +396,30 @@ function SpellQ({ q, phase, onAnswer }: QProps) {
         className="spell"
         onSubmit={(e) => {
           e.preventDefault()
-          if (!answered && val.trim()) onAnswer(ok, val)
+          if (!answered && val.trim()) onAnswer(ok, ok ? w.word : typed)
         }}
       >
-        <input
-          autoFocus
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
-          disabled={answered}
-          autoCapitalize="none"
-          autoCorrect="off"
-          autoComplete="off"
-          spellCheck={false}
-          lang="en"
-          placeholder="スペルを入力"
-          className={answered ? (ok ? 'right' : 'wrong') : ''}
-        />
+        <label className={`spell-box ${answered ? (ok ? 'right' : 'wrong') : ''}`}>
+          <span className="spell-prefix" lang="en" aria-hidden>
+            {prefix}
+          </span>
+          <input
+            autoFocus
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            disabled={answered}
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
+            lang="en"
+            aria-label={`${prefix} に続けてスペルを入力`}
+            placeholder={val ? '' : '続きを入力'}
+          />
+        </label>
         {!answered && (
           <div className="row">
-            <button type="button" className="ghost" onClick={() => setHint(Math.min(w.word.length, hint + 1))}>
+            <button type="button" className="ghost" onClick={moreHint} disabled={hint >= w.word.length}>
               ヒント
             </button>
             <button type="button" className="ghost" onClick={() => onAnswer(false)}>
