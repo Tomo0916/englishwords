@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { displayName, isNickAccount, toAuthEmail } from '../account'
 import { supabase } from '../supabase'
 
 type Request = { email: string; status: 'pending' | 'rejected'; created_at: string }
@@ -111,12 +112,12 @@ export function Admin({ me, onBack }: { me: string; onBack: () => void }) {
           ))}
         <p className="fine">
           生徒への案内：アプリ（{location.origin}
-          {import.meta.env.BASE_URL}）を開き、「はじめての方」でメールアドレスとパスワードを決めて登録
+          {import.meta.env.BASE_URL}）を開き、「はじめての方」でニックネーム（またはメールアドレス）とパスワードを決めて登録
           <button
             className="link"
             onClick={() =>
               void copy(
-                `英単語1400（単語帳アプリ）\n${location.origin}${import.meta.env.BASE_URL}\nこのページを開き、「はじめての方」でメールアドレスとパスワード（自分で決める）を入れて登録してください。`,
+                `英単語1400（単語帳アプリ）\n${location.origin}${import.meta.env.BASE_URL}\nこのページを開き、「はじめての方」でニックネーム（またはメールアドレス）とパスワード（自分で決める）を入れて登録してください。`,
                 '案内文をコピーしました。',
               )
             }
@@ -145,7 +146,8 @@ export function Admin({ me, onBack }: { me: string; onBack: () => void }) {
           {pending.map((r) => (
             <li key={r.email}>
               <div className="row">
-                <b className="email">{r.email}</b>
+                <b className="email">{displayName(r.email)}</b>
+                {isNickAccount(r.email) && <span className="badge">ニックネーム</span>}
               </div>
               <div className="fine">{time(r.created_at)} に登録</div>
               <div className="row">
@@ -155,7 +157,7 @@ export function Admin({ me, onBack }: { me: string; onBack: () => void }) {
                 <button
                   className="ghost danger-text"
                   disabled={busy}
-                  onClick={() => window.confirm(`${r.email} を却下しますか？\n（あとから「却下した人」で承認し直せます）`) && void run(sb.rpc('admin_reject', { p_email: r.email }))}
+                  onClick={() => window.confirm(`${displayName(r.email)} を却下しますか？\n（あとから「却下した人」で承認し直せます）`) && void run(sb.rpc('admin_reject', { p_email: r.email }))}
                 >
                   却下
                 </button>
@@ -170,7 +172,7 @@ export function Admin({ me, onBack }: { me: string; onBack: () => void }) {
               {rejected.map((r) => (
                 <li key={r.email} className="off">
                   <div className="row">
-                    <b className="email">{r.email}</b>
+                    <b className="email">{displayName(r.email)}</b>
                     <button className="ghost" disabled={busy} onClick={() => void approve([r.email])}>
                       承認し直す
                     </button>
@@ -196,16 +198,16 @@ export function Admin({ me, onBack }: { me: string; onBack: () => void }) {
               className="admin-form"
               onSubmit={async (e) => {
                 e.preventDefault()
-                if (await run(sb.rpc('admin_add_member', { p_email: newEmail, p_note: newNote }))) {
-                  window.alert(`${newEmail} を追加しました。本人がこのメールアドレスで登録すると、すぐに使えます。`)
+                if (await run(sb.rpc('admin_add_member', { p_email: toAuthEmail(newEmail), p_note: newNote }))) {
+                  window.alert(`${newEmail} を追加しました。本人がこの${newEmail.includes('@') ? 'メールアドレス' : 'ニックネーム'}で登録すると、すぐに使えます。`)
                   setNewEmail('')
                   setNewNote('')
                 }
               }}
             >
               <label>
-                メールアドレスで先に追加（家族など）
-                <input type="email" required value={newEmail} onChange={(e) => setNewEmail(e.target.value)} autoCapitalize="none" />
+                ニックネームかメールアドレスで先に追加（家族など）
+                <input required value={newEmail} onChange={(e) => setNewEmail(e.target.value)} autoCapitalize="none" />
               </label>
               <label>
                 メモ
@@ -219,7 +221,7 @@ export function Admin({ me, onBack }: { me: string; onBack: () => void }) {
               {members?.map((m) => (
                 <li key={m.email}>
                   <div className="row">
-                    <b className="email">{m.email}</b>
+                    <b className="email">{displayName(m.email)}</b>
                     {m.is_admin && <span className="badge">講師</span>}
                     {!m.registered && <span className="badge warn">未登録</span>}
                   </div>
@@ -235,7 +237,7 @@ export function Admin({ me, onBack }: { me: string; onBack: () => void }) {
                           disabled={busy}
                           onClick={async () => {
                             const pw = tempPassword()
-                            if (!window.confirm(`${m.email} のパスワードを、仮のパスワード「${pw}」に変えますか？`)) return
+                            if (!window.confirm(`${displayName(m.email)} のパスワードを、仮のパスワード「${pw}」に変えますか？`)) return
                             if (await run(sb.rpc('admin_reset_password', { p_email: m.email, p_password: pw })))
                               void copy(
                                 `仮のパスワード：${pw}\nログイン後、設定画面の「パスワードを変える」で自分のパスワードに変えてください。`,
@@ -250,7 +252,7 @@ export function Admin({ me, onBack }: { me: string; onBack: () => void }) {
                         className="ghost danger-text"
                         disabled={busy}
                         onClick={() =>
-                          window.confirm(`${m.email} の利用を止めますか？\n（学習記録は残ります。もう一度追加すれば元どおり使えます）`) &&
+                          window.confirm(`${displayName(m.email)} の利用を止めますか？\n（学習記録は残ります。もう一度追加すれば元どおり使えます）`) &&
                           void run(sb.rpc('admin_remove_member', { p_email: m.email }))
                         }
                       >

@@ -13,6 +13,7 @@ import { setVocab, shuffle, supports } from './quiz'
 import { setSettings, useSettings } from './settings'
 import { SaveAudio } from './components/SaveAudio'
 import { availableVoices, clearAudioCache, playWord } from './speech'
+import { displayName } from './account'
 import { supabase } from './supabase'
 import type { Answer, Mode, Question, Word } from './types'
 
@@ -195,7 +196,7 @@ export default function App() {
             )}
             {session && (
               <p className="fine">
-                ログイン中：{session.user.email}
+                ログイン中：{displayName(session.user.email)}
                 <button className="link" onClick={() => supabase?.auth.signOut()}>
                   ログアウト
                 </button>
