@@ -134,6 +134,26 @@ export default function App() {
     }
   }, [uid, recheck])
 
+  // 講師ボタンの数字（承認待ち＋未対応の修正リクエスト）
+  const [teacherBadge, setTeacherBadge] = useState(0)
+  const [badgeTick, setBadgeTick] = useState(0)
+  useEffect(() => {
+    if (!supabase || !member?.admin) return
+    const sb = supabase
+    let alive = true
+    const count = async () => {
+      const [r, p] = await Promise.all([sb.rpc('admin_list_requests'), sb.rpc('admin_list_reports', { p_status: 'open' })])
+      const n = ((r.data as { status: string }[] | null) ?? []).filter((x) => x.status === 'pending').length + ((p.data as unknown[] | null) ?? []).length
+      if (alive) setTeacherBadge(n)
+    }
+    void count()
+    const t = setInterval(() => document.visibilityState === 'visible' && void count(), 60000)
+    return () => {
+      alive = false
+      clearInterval(t)
+    }
+  }, [member?.admin, badgeTick])
+
   const canLoad = !supabase || (!!session && !!member?.allowed)
   useEffect(() => {
     if (!canLoad) return
@@ -171,6 +191,7 @@ export default function App() {
           {member?.admin && (
             <button className="ghost teacher-btn" onClick={() => setView({ kind: 'admin' })}>
               講師
+              {teacherBadge > 0 && <span className="count-badge">{teacherBadge}</span>}
             </button>
           )}
           <button className="ghost" onClick={() => setView({ kind: 'settings' })} aria-label="設定">
@@ -194,7 +215,7 @@ export default function App() {
           <Result answers={view.answers} onHome={() => setView({ kind: 'home' })} onAgainWrong={(ids) => start({ mode: view.mode, ids })} />
         )}
         {words && view.kind === 'list' && <WordList words={words} round={view.round} onBack={() => setView({ kind: 'home' })} />}
-        {view.kind === 'admin' && session && <Admin me={session.user.email ?? ''} onBack={() => setView({ kind: 'home' })} />}
+        {view.kind === 'admin' && session && <Admin me={session.user.email ?? ''} words={words} onBack={() => (setView({ kind: 'home' }), setBadgeTick((n) => n + 1))} />}
         {view.kind === 'settings' && (
           <div className="settings">
             <h2>設定</h2>

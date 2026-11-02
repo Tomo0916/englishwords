@@ -3,6 +3,7 @@ import { getProgress, setLevel, subscribe } from '../progress'
 import { cleanForm, highlightJa, wordLabel } from '../quiz'
 import { playExample, playWord } from '../speech'
 import type { Level, Word } from '../types'
+import { ReportButton } from './Report'
 
 const WARN: Record<string, string> = { accent: 'アクセント', pronunciation: '発音', usage: '語法', polysemy: '多義' }
 
@@ -50,7 +51,7 @@ export function SpeakButton({ w, kind = 'word', withJa = true, label }: { w: Wor
   )
 }
 
-export function WordCard({ w, compact = false }: { w: Word; compact?: boolean }) {
+export function WordCard({ w, compact = false, context }: { w: Word; compact?: boolean; context?: string }) {
   const [pre, ans, post] = w.example ? highlightJa(w.example.ja, w.example.answer) : ['', '', '']
   return (
     <article className="card">
@@ -116,6 +117,9 @@ export function WordCard({ w, compact = false }: { w: Word; compact?: boolean })
         </div>
       )}
       {!compact && w.memo && <p className="memo">MEMO　{w.memo}</p>}
+      <div className="card-foot">
+        <ReportButton w={w} context={context} />
+      </div>
     </article>
   )
 }

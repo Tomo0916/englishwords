@@ -144,7 +144,7 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
           <div className="verdict">{fb.correct ? '◯ 正解' : '✕ 不正解'}</div>
           {!fb.correct && (
             <>
-              <WordCard w={q.word} />
+              <WordCard w={q.word} context={`クイズ：${MODE_LABEL[q.mode]}`} />
               <button className="primary wide" onClick={() => next(answers)} autoFocus>
                 次へ
               </button>
