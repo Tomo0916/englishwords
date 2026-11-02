@@ -228,27 +228,46 @@ input.wrong { border-color: var(--ng) !important; background: var(--ng-soft) !im
 .settings .toggle { display: flex; color: var(--ink); font-size: 0.95rem; }
 .settings button { justify-self: start; margin-top: 8px; }
 .end-punct { align-self: center; font-size: 1.1rem; }
-/* ---------- invite / admin ---------- */
+/* ---------- 登録・講師用ページ ---------- */
 .login-tabs { justify-content: center; margin-bottom: 18px; }
 .login-tabs button { flex: 1; text-align: center; }
-.login label .fine { font-size: 0.78rem; }
-.code-input { letter-spacing: 0.3em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
-.admin { display: grid; gap: 18px; }
+.wait-box { padding: 18px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); margin-bottom: 16px; }
+.wait-box p { margin: 0 0 8px; line-height: 1.7; }
+.wait-box .wait-title { font-weight: 700; font-size: 1.05rem; }
+.wait-box .fine { margin: 6px 0 0; }
+.center-text { text-align: center; }
+.teacher-btn { margin-left: auto; margin-right: 8px; padding: 8px 12px; font-size: 0.85rem; }
+.admin { display: grid; gap: 20px; }
 .admin section { display: grid; gap: 8px; }
 .admin h3 { margin: 0; font-size: 1rem; }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.signup-panel { padding: 16px; border-radius: 16px; border: 2px solid var(--line); background: var(--surface); }
+.signup-panel.on { border-color: var(--ok); background: var(--ok-soft); }
+.signup-state { display: flex; gap: 12px; align-items: flex-start; }
+.signup-state b { font-size: 1.1rem; }
+.signup-state .fine { margin: 4px 0 0; }
+.signup-state .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--ink-2); margin-top: 6px; flex: none; }
+.signup-panel.on .dot { background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 25%, transparent); }
+.start-btn, .stop-btn { width: 100%; padding: 16px; border-radius: 14px; font-size: 1.05rem; font-weight: 700; }
+.start-btn { background: var(--ok); color: #fff; }
+.stop-btn { background: var(--ng); color: #fff; }
+.signup-panel > .fine { margin: 0; }
+.signup-panel .link { margin-left: 8px; font-size: 0.82rem; }
+.primary.small, .ghost.small { padding: 7px 12px; font-size: 0.85rem; }
 .admin-form { display: grid; gap: 10px; padding: 14px; border-radius: 14px; background: var(--surface-2); }
 .admin-form label { display: grid; gap: 6px; font-size: 0.85rem; color: var(--ink-2); margin: 0; }
 .admin-form .primary, .admin-form .row { justify-self: start; }
 .admin-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .admin-list li { padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); display: grid; gap: 6px; }
-.admin-list li.off { opacity: 0.55; }
+.admin-list li.off { opacity: 0.6; }
 .admin-list .row, .admin-form .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .admin-list .ghost { padding: 7px 11px; font-size: 0.82rem; }
-.admin-list .code { font-size: 1.15rem; letter-spacing: 0.15em; font-variant-numeric: tabular-nums; }
-.admin-list .email { overflow-wrap: anywhere; }
+.admin-list .email { overflow-wrap: anywhere; flex: 1; }
+.rejected summary { cursor: pointer; color: var(--ink-2); font-size: 0.88rem; padding: 6px 0; }
 .badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); }
 .badge.warn { background: var(--accent-soft); color: var(--accent); }
 .danger-text { color: var(--ng) !important; }
 .voice-pick { display: grid; gap: 6px; margin-bottom: 14px; }
 .voice-pick > span { font-size: 0.85rem; color: var(--ink-2); }
 .voice-pick .fine { margin: 0; }
+.admin-list .row .primary { width: auto; flex: none; }
