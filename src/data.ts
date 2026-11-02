@@ -27,6 +27,16 @@ function writeCache(words: Word[]) {
  * 取得できればキャッシュし、オフライン時はキャッシュを返す。
  */
 export async function loadWords(): Promise<Word[]> {
+  // 前回の単語データがあれば、すぐそれで始める（電波が弱くても待たせない）。新しいデータは裏で取って次回から使う
+  const cached = supabase ? readCache() : null
+  if (cached) {
+    void fetchWords().catch(() => {})
+    return cached
+  }
+  return fetchWords()
+}
+
+async function fetchWords(): Promise<Word[]> {
   try {
     let words: Word[]
     if (supabase) {
@@ -41,6 +51,7 @@ export async function loadWords(): Promise<Word[]> {
         all.push(...data.map((r) => r.data as Word))
         if (data.length < 1000) break
       }
+      if (!all.length) throw new Error('0件でした（まだ承認されていない可能性があります）')
       words = all
     } else {
       const res = await fetch(`${import.meta.env.BASE_URL}local-data/words.json`)
