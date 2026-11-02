@@ -151,6 +151,12 @@ h3 { font-size: 0.8rem; color: var(--ink-2); letter-spacing: 0.08em; margin: 22p
 .chip { padding: 9px 13px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); font-size: 1.05rem; box-shadow: 0 1px 0 var(--line); }
 .chip:disabled { opacity: 0.25; }
 .chip.placed { background: var(--accent-soft); border-color: transparent; }
+/* ドラッグ */
+.order-line .chip, .chips .chip { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.chip.lifted { opacity: 0.25; }
+.drag-ghost { position: fixed; z-index: 50; pointer-events: none; text-align: center; box-shadow: 0 8px 20px rgb(0 0 0 / 0.18); transform: scale(1.06); background: var(--surface); border-color: var(--accent); }
+.order-line.drop { border-color: var(--accent); }
+.drop-mark { width: 3px; align-self: stretch; min-height: 38px; border-radius: 2px; background: var(--accent); }
 .order-line.right .chip.placed, .order-line.wrong .chip.placed { opacity: 1; background: var(--surface); }
 .answer-line { color: var(--ok); font-weight: 700; margin: 8px 0 0; }
 

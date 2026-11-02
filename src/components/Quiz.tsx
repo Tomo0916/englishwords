@@ -298,6 +298,23 @@ function TimeBar({ sec, onTimeout }: { sec: number; onTimeout: () => void }) {
 
 // ---------- 並び替え ----------
 
+type Drag = {
+  token: number // 動かしている語（correct の番号）
+  from: number | null // 並べた列の何番目から持ち上げたか（下の語群からなら null）
+  x: number
+  y: number
+  dx: number // 指と語の左上のずれ
+  dy: number
+  w: number
+  over: number | null // 並べた列に落とすなら、その挿入位置
+  lift: number // 指で隠れないよう、語を指より上に浮かせる量（タッチのみ）
+}
+
+/**
+ * 並び替え。タップで順に並べるほか、ドラッグでも操作できる。
+ * - 下の語を上の列の好きな位置へドラッグして入れる
+ * - 並べた語をドラッグして入れ替える／列の外へドラッグして戻す
+ */
 function OrderQ({ q, phase, onAnswer }: QProps) {
   const w = q.word
   const ex = w.example!
@@ -309,23 +326,103 @@ function OrderQ({ q, phase, onAnswer }: QProps) {
     return s
   }, [correct])
   const [picked, setPicked] = useState<number[]>([])
+  const [drag, setDrag] = useState<Drag | null>(null)
+  const lineRef = useRef<HTMLDivElement>(null)
+  const press = useRef<{ token: number; from: number | null; x: number; y: number; el: HTMLElement; id: number; touch: boolean } | null>(null)
+  const justDragged = useRef(false)
   const answered = phase.kind === 'feedback'
   const built = picked.map((i) => correct[i])
 
   const check = () => onAnswer(normalize(built.join(' ')) === normalize(correct.join(' ')))
+
+  /** 指の位置から、並べた列のどこに入るかを求める（列の外なら null） */
+  const dropIndex = (x: number, y: number, from: number | null): number | null => {
+    const line = lineRef.current
+    if (!line) return null
+    const r = line.getBoundingClientRect()
+    const pad = 24 // 列の少し外でも入れられるように
+    if (x < r.left - pad || x > r.right + pad || y < r.top - pad || y > r.bottom + pad) return null
+    const chips = [...line.querySelectorAll<HTMLElement>('[data-k]')].filter((el) => Number(el.dataset.k) !== from)
+    for (let n = 0; n < chips.length; n++) {
+      const c = chips[n].getBoundingClientRect()
+      if (y < c.top) return n
+      if (y <= c.bottom && x < c.left + c.width / 2) return n
+    }
+    return chips.length
+  }
+
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      const p = press.current
+      if (!p || e.pointerId !== p.id) return
+      if (!drag) {
+        if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 8) return // 小さな動きはタップ扱い
+        const r = p.el.getBoundingClientRect()
+        const lift = p.touch ? 36 : 0
+        setDrag({ token: p.token, from: p.from, x: e.clientX, y: e.clientY, dx: p.x - r.left, dy: p.y - r.top, w: r.width, lift, over: dropIndex(e.clientX, e.clientY - lift, p.from) })
+        return
+      }
+      e.preventDefault()
+      setDrag({ ...drag, x: e.clientX, y: e.clientY, over: dropIndex(e.clientX, e.clientY - drag.lift, drag.from) })
+    }
+    const up = (e: PointerEvent) => {
+      const p = press.current
+      if (!p || e.pointerId !== p.id) return
+      press.current = null
+      if (!drag) return
+      justDragged.current = true
+      setTimeout(() => (justDragged.current = false), 0)
+      const rest = drag.from == null ? picked : picked.filter((_, j) => j !== drag.from)
+      if (drag.over != null) setPicked([...rest.slice(0, drag.over), drag.token, ...rest.slice(drag.over)])
+      else if (drag.from != null) setPicked(rest) // 列の外に出したら戻す
+      setDrag(null)
+    }
+    window.addEventListener('pointermove', move, { passive: false })
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drag, picked])
+
+  const startPress = (token: number, from: number | null) => (e: React.PointerEvent<HTMLElement>) => {
+    if (answered || e.button > 0) return
+    press.current = { token, from, x: e.clientX, y: e.clientY, el: e.currentTarget, id: e.pointerId, touch: e.pointerType !== 'mouse' }
+  }
+  const tap = (fn: () => void) => () => {
+    if (!justDragged.current) fn()
+  }
+
+  // 並べた列の表示（ドラッグ中は、持ち上げた語を抜き、落とす位置に印を入れる）
+  const lineItems: ({ k: number; token: number } | 'mark')[] = picked.map((token, k) => ({ k, token })).filter((it) => !drag || it.k !== drag.from)
+  if (drag?.over != null) lineItems.splice(drag.over, 0, 'mark')
 
   return (
     <div className="question">
       <div className="prompt">
         <ClozeJa w={w} />
       </div>
-      <div className={`order-line ${answered ? (phase.correct ? 'right' : 'wrong') : ''}`} lang="en">
-        {picked.length === 0 && <span className="placeholder">下の語をタップして英文を作ろう</span>}
-        {picked.map((i, k) => (
-          <button key={k} className="chip placed" disabled={answered} onClick={() => setPicked(picked.filter((_, j) => j !== k))}>
-            {correct[i]}
-          </button>
-        ))}
+      <div ref={lineRef} className={`order-line ${answered ? (phase.correct ? 'right' : 'wrong') : ''} ${drag?.over != null ? 'drop' : ''}`} lang="en">
+        {picked.length === 0 && !drag && <span className="placeholder">下の語をタップかドラッグして英文を作ろう</span>}
+        {lineItems.map((it) =>
+          it === 'mark' ? (
+            <span key="mark" className="drop-mark" />
+          ) : (
+            <button
+              key={`p${it.k}`}
+              data-k={it.k}
+              className="chip placed"
+              disabled={answered}
+              onPointerDown={startPress(it.token, it.k)}
+              onClick={tap(() => setPicked(picked.filter((_, j) => j !== it.k)))}
+            >
+              {correct[it.token]}
+            </button>
+          ),
+        )}
         {picked.length > 0 && <span className="end-punct">{end}</span>}
       </div>
       {answered && !phase.correct && (
@@ -335,11 +432,22 @@ function OrderQ({ q, phase, onAnswer }: QProps) {
       )}
       <div className="chips" lang="en">
         {initial.map((i) => (
-          <button key={i} className="chip" disabled={answered || picked.includes(i)} onClick={() => setPicked([...picked, i])}>
+          <button
+            key={i}
+            className={`chip ${drag?.token === i && drag.from == null ? 'lifted' : ''}`}
+            disabled={answered || picked.includes(i)}
+            onPointerDown={startPress(i, null)}
+            onClick={tap(() => setPicked([...picked, i]))}
+          >
             {correct[i]}
           </button>
         ))}
       </div>
+      {drag && (
+        <div className="chip drag-ghost" lang="en" style={{ left: drag.x - drag.dx, top: drag.y - drag.dy - drag.lift, minWidth: drag.w }}>
+          {correct[drag.token]}
+        </div>
+      )}
       {!answered && (
         <div className="row">
           <button className="ghost" onClick={() => setPicked(picked.slice(0, -1))} disabled={!picked.length}>
