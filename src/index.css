@@ -302,3 +302,14 @@ input.wrong { border-color: var(--ng) !important; background: var(--ng-soft) !im
 .report-msg { margin: 0; white-space: pre-wrap; font-size: 0.92rem; }
 .teacher-btn { position: relative; }
 .count-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--ng); color: #fff; font-size: 0.7rem; line-height: 18px; text-align: center; }
+
+/* ---------- お知らせ ---------- */
+.news-btn { position: relative; margin-right: 8px; padding: 8px 10px; }
+.news-btn.solo { margin-left: auto; }
+.news-btn .dot { position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; border-radius: 50%; background: var(--ng); }
+.teacher-btn { margin-right: 6px; }
+.news { display: grid; gap: 12px; }
+.news-entry { padding: 14px 16px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+.news-head { display: flex; gap: 8px; align-items: center; color: var(--ink-2); font-size: 0.8rem; }
+.news-entry h3 { margin: 4px 0 8px; font-size: 1rem; color: var(--ink); }
+.news-entry ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; font-size: 0.92rem; line-height: 1.6; }
