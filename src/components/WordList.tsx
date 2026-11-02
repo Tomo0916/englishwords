@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { meaningText } from '../quiz'
+import { prefetchWords } from '../speech'
 import type { Word } from '../types'
+import { SaveAudio } from './SaveAudio'
 import { Checks, SpeakButton, WordCard } from './WordCard'
 
 export function WordList({ words, round, onBack }: { words: Word[]; round: number; onBack: () => void }) {
@@ -9,18 +11,16 @@ export function WordList({ words, round, onBack }: { words: Word[]; round: numbe
   const [open, setOpen] = useState<number | null>(null)
   const [revealed, setRevealed] = useState<Set<number>>(new Set())
 
+  // 一覧の単語の発音（英語・意味）を裏で先読み
+  useEffect(() => {
+    void prefetchWords(list, ['w', 'wj'])
+  }, [list])
+
   return (
     <div className="list">
-      <div className="list-top">
-        <button className="ghost" onClick={onBack}>
-          ← 戻る
-        </button>
-        <h2>{round === 13 ? '付録' : `ROUND ${round}`}</h2>
-        <label className="toggle">
-          <input type="checkbox" checked={hide} onChange={(e) => (setHide(e.target.checked), setRevealed(new Set()))} />
-          赤シート
-        </label>
-      </div>
+      <ListTop round={round} onBack={onBack} hide={hide} setHide={(v) => (setHide(v), setRevealed(new Set()))} />
+      <SaveAudio list={list} label={round === 13 ? 'この付録の音声を保存' : 'この ROUND の音声を保存'} />
+
       <ul>
         {list.map((w) => (
           <li key={w.id} className={open === w.id ? 'open' : ''}>
@@ -46,6 +46,21 @@ export function WordList({ words, round, onBack }: { words: Word[]; round: numbe
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+function ListTop({ round, onBack, hide, setHide }: { round: number; onBack: () => void; hide: boolean; setHide: (v: boolean) => void }) {
+  return (
+    <div className="list-top">
+      <button className="ghost" onClick={onBack}>
+        ← 戻る
+      </button>
+      <h2>{round === 13 ? '付録' : `ROUND ${round}`}</h2>
+      <label className="toggle">
+        <input type="checkbox" checked={hide} onChange={(e) => setHide(e.target.checked)} />
+        赤シート
+      </label>
     </div>
   )
 }

@@ -17,7 +17,7 @@ import {
   wordLabel,
 } from '../quiz'
 import { useSettings } from '../settings'
-import { playExample, playWord, stopSpeaking } from '../speech'
+import { playExample, playWord, prefetchWords, stopSpeaking } from '../speech'
 import type { Answer, Mode, Question, Word } from '../types'
 import { SpeakButton, WordCard } from './WordCard'
 
@@ -39,6 +39,11 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
   const retries = useRef(new Map<number, number>())
   const started = useRef(Date.now())
   const q = queue[pos]
+
+  // このセットの単語の音声を最初に裏で読み込んでおく（出題のたびに待たないように）
+  useEffect(() => {
+    void prefetchWords([...new Map(questions.map((x) => [x.word.id, x.word])).values()])
+  }, [questions])
 
   useEffect(() => {
     started.current = Date.now()

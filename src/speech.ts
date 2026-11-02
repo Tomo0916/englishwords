@@ -3,7 +3,7 @@
  * 1. Supabase Storage（非公開バケット audio）に生成済みの音声があればそれを再生（端末にキャッシュ）
  * 2. なければブラウザ標準の読み上げ（Web Speech API）で代用
  */
-import { type ClipKind, clipPath, clipText } from './audioText'
+import { CLIP_KINDS, type ClipKind, clipPath, clipText } from './audioText'
 import { getSettings } from './settings'
 import { supabase } from './supabase'
 import type { Word } from './types'
@@ -58,26 +58,107 @@ export function availableVoices() {
   return VOICES.map((v) => ({ ...v, ready: !!ready?.[v.key] }))
 }
 
-async function clipUrl(path: string): Promise<string | null> {
-  const key = new Request(`${location.origin}/__audio__/${path}`)
-  try {
-    const cache = await caches.open(CACHE)
-    const hit = await cache.match(key)
-    if (hit) return URL.createObjectURL(await hit.blob())
-    if (!supabase || !navigator.onLine) return null
-    const { data } = await supabase.storage.from('audio').download(path)
-    if (!data) return null
-    await cache.put(key, new Response(data, { headers: { 'content-type': 'audio/mpeg' } }))
-    return URL.createObjectURL(data)
-  } catch {
+const cacheKey = (path: string) => new Request(`${location.origin}/__audio__/${path}`)
+const inflight = new Map<string, Promise<Blob | null>>()
+const memo = new Map<string, Blob>() // このページを開いている間の手元コピー（キャッシュを開く手間も省く）
+
+/** 音声ファイルを取ってくる（端末に保存済みならそれを使う）。同じファイルの同時取得は1回にまとめる */
+function fetchClip(path: string): Promise<Blob | null> {
+  const m = memo.get(path)
+  if (m) return Promise.resolve(m)
+  let p = inflight.get(path)
+  if (p) return p
+  p = (async () => {
+    let cache: Cache | null = null
     try {
-      if (!supabase) return null
+      cache = await caches.open(CACHE)
+      const hit = await cache.match(cacheKey(path))
+      if (hit) return await hit.blob()
+    } catch {
+      cache = null
+    }
+    if (!supabase || !navigator.onLine) return null
+    try {
       const { data } = await supabase.storage.from('audio').download(path)
-      return data ? URL.createObjectURL(data) : null
+      if (!data) return null
+      try {
+        await cache?.put(cacheKey(path), new Response(data, { headers: { 'content-type': 'audio/mpeg' } }))
+      } catch {
+        /* 容量不足などは無視（再生はできる） */
+      }
+      return data
     } catch {
       return null
     }
+  })()
+    .then((b) => {
+      if (b) {
+        memo.set(path, b)
+        if (memo.size > 300) memo.delete(memo.keys().next().value!) // 古いものから手放す（端末の保存分は残る）
+      }
+      return b
+    })
+    .finally(() => inflight.delete(path))
+  inflight.set(path, p)
+  return p
+}
+
+/** 先読み・まとめて保存の対象になるファイル */
+async function clipPaths(words: Word[], kinds: ClipKind[]) {
+  await loadReady()
+  const { voice } = getSettings()
+  if (!ready?.[voice]) return []
+  return words.flatMap((w) => kinds.filter((k) => clipText(w, k)).map((k) => clipPath(voice, w.id, k)))
+}
+
+/** 決まった数ずつ並行して取ってくる */
+async function fetchMany(paths: string[], parallel: number, onEach?: () => void, shouldStop?: () => boolean) {
+  let i = 0
+  const run = async () => {
+    while (i < paths.length && !shouldStop?.()) {
+      await fetchClip(paths[i++])
+      onEach?.()
+    }
   }
+  await Promise.all(Array.from({ length: parallel }, run))
+}
+
+/**
+ * これから使いそうな音声を裏で先読みする（クイズ開始時・単語一覧を開いたとき）。
+ * 通信量節約モードの端末では行わない。
+ */
+export async function prefetchWords(words: Word[], kinds: ClipKind[] = ['w', 'wj', 'e', 'ej']) {
+  const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+  if (conn?.saveData || !navigator.onLine) return
+  const paths = await clipPaths(words, kinds)
+  await fetchMany(paths, 4)
+}
+
+/** 単語の音声がどれだけ端末に保存されているか（保存済みの一覧を一度だけ読んで数える） */
+export async function cachedCount(words: Word[]) {
+  const paths = await clipPaths(words, CLIP_KINDS)
+  let saved = new Set<string>()
+  try {
+    const prefix = `${location.origin}/__audio__/`
+    saved = new Set((await (await caches.open(CACHE)).keys()).map((r) => decodeURIComponent(r.url.slice(prefix.length))))
+  } catch {
+    /* ignore */
+  }
+  return { done: paths.filter((p) => saved.has(p)).length, total: paths.length }
+}
+
+/** 単語の音声をすべて端末に保存する（ROUND ごとの「音声を保存」ボタン）。進み具合を onProgress で知らせる */
+export async function saveWords(words: Word[], onProgress: (done: number, total: number) => void, shouldStop: () => boolean) {
+  const paths = await clipPaths(words, CLIP_KINDS)
+  try {
+    await navigator.storage?.persist?.() // 端末が勝手に消さないようお願いする（対応ブラウザのみ）
+  } catch {
+    /* ignore */
+  }
+  let done = 0
+  onProgress(0, paths.length)
+  await fetchMany(paths, 6, () => onProgress(++done, paths.length), shouldStop)
+  return cachedCount(words)
 }
 
 // iOS は同じ audio 要素を使い回すと自動再生が通りやすい
@@ -118,11 +199,14 @@ async function playClips(w: Word, kinds: ClipKind[]) {
   await loadReady()
   const { voice } = getSettings()
   const useFiles = !!ready?.[voice]
-  for (const kind of kinds) {
+  // 続けて鳴らす音声（英語→日本語）は最初に全部まとめて取りに行く（1つずつ待たない）
+  const blobs = kinds.map((k) => (useFiles && clipText(w, k) ? fetchClip(clipPath(voice, w.id, k)) : Promise.resolve(null)))
+  for (const [i, kind] of kinds.entries()) {
     if (token !== playToken) return
     const c = clipText(w, kind)
     if (!c) continue
-    const url = useFiles ? await clipUrl(clipPath(voice, w.id, kind)) : null
+    const blob = await blobs[i]
+    const url = blob ? URL.createObjectURL(blob) : null
     if (token !== playToken) return
     if (url) await playUrl(url, token)
     else await synthSpeak(kind === 'w' ? w.word.replace(/[()～~]/g, ' ') : c.text, c.lang)
@@ -151,6 +235,7 @@ export function speak(text: string) {
 
 /** 端末に保存した音声を消す（設定画面から） */
 export async function clearAudioCache() {
+  memo.clear()
   try {
     await caches.delete(CACHE)
   } catch {

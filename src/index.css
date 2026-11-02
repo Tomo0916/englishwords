@@ -192,6 +192,11 @@ input.wrong { border-color: var(--ng) !important; background: var(--ng-soft) !im
 /* ---------- list ---------- */
 .list-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .list-top h2 { flex: 1; font-size: 1.1rem; margin: 0; }
+.save-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; }
+.save-all { display: grid; gap: 6px; margin-bottom: 14px; }
+.save-all > span { font-size: 0.85rem; color: var(--ink-2); }
+.save-all .fine { margin: 0; }
+.save-bar .ghost { padding: 8px 12px; font-size: 0.85rem; }
 .toggle { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
 .list ul { list-style: none; padding: 0; margin: 0; }
 .list li { border-bottom: 1px solid var(--line); }
