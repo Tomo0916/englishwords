@@ -42,7 +42,7 @@ export function WordList({ words, round, onBack }: { words: Word[]; round: numbe
               </span>
               <Checks id={w.id} />
             </div>
-            {open === w.id && <WordCard w={w} />}
+            {open === w.id && <WordCard w={w} context="単語一覧" />}
           </li>
         ))}
       </ul>

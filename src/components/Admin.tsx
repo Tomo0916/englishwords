@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { displayName, isNickAccount, toAuthEmail } from '../account'
 import { supabase } from '../supabase'
+import type { Word } from '../types'
+import { AdminReports } from './AdminReports'
 
 type Request = { email: string; status: 'pending' | 'rejected'; created_at: string }
 type Member = { email: string; note: string | null; is_admin: boolean; created_at: string; last_sign_in_at: string | null; registered: boolean }
@@ -28,7 +30,7 @@ async function copy(text: string, done: string) {
  * - 新規登録の受付：受付中は登録した生徒を自動承認。停止中は「承認待ち」に入り、ここで手動承認
  * - メンバーの一覧・仮パスワード・利用停止
  */
-export function Admin({ me, onBack }: { me: string; onBack: () => void }) {
+export function Admin({ me, words, onBack }: { me: string; words: Word[] | null; onBack: () => void }) {
   const [open, setOpen] = useState<boolean | null>(null)
   const [requests, setRequests] = useState<Request[] | null>(null)
   const [members, setMembers] = useState<Member[] | null>(null)
@@ -183,6 +185,9 @@ export function Admin({ me, onBack }: { me: string; onBack: () => void }) {
           </details>
         )}
       </section>
+
+      {/* ---------- 修正リクエスト ---------- */}
+      <AdminReports words={words} />
 
       {/* ---------- メンバー ---------- */}
       <section>

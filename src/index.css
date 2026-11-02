@@ -286,3 +286,19 @@ input.wrong { border-color: var(--ng) !important; background: var(--ng-soft) !im
 .voice-pick > span { font-size: 0.85rem; color: var(--ink-2); }
 .voice-pick .fine { margin: 0; }
 .admin-list .row .primary { width: auto; flex: none; }
+
+/* ---------- 修正リクエスト ---------- */
+.card-foot { display: flex; justify-content: flex-end; margin-top: 10px; }
+.report-link { font-size: 0.78rem; color: var(--ink-2); padding: 4px 2px; }
+.sheet-backdrop { position: fixed; inset: 0; z-index: 60; background: rgb(0 0 0 / 0.35); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-width: 560px; max-height: 90dvh; overflow: auto; background: var(--bg); border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); }
+.sheet h3 { margin: 0 0 4px; font-size: 1.05rem; color: var(--ink); }
+.sheet form { display: grid; gap: 12px; }
+.sheet label { display: grid; gap: 6px; font-size: 0.85rem; color: var(--ink-2); }
+.sheet textarea { padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font: inherit; font-size: 1rem; color: var(--ink); resize: vertical; }
+.sheet .row { display: flex; gap: 8px; justify-content: flex-end; }
+.sheet-done { display: grid; gap: 8px; text-align: center; padding: 10px 0; }
+.report-cats button { font-size: 0.82rem; }
+.report-msg { margin: 0; white-space: pre-wrap; font-size: 0.92rem; }
+.teacher-btn { position: relative; }
+.count-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--ng); color: #fff; font-size: 0.7rem; line-height: 18px; text-align: center; }
