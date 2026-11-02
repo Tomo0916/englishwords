@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { displayName, isEmailInput, isNickAccount, nickProblem, toAuthEmail } from '../account'
 import { supabase } from '../supabase'
 
 function Logo() {
@@ -17,7 +18,7 @@ function Logo() {
  */
 export function Login() {
   const [tab, setTab] = useState<'login' | 'signup'>('login')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState('') // ニックネームかメールアドレス
   const [password, setPassword] = useState('')
   const [password2, setPassword2] = useState('')
   const [msg, setMsg] = useState('')
@@ -30,22 +31,31 @@ export function Login() {
     e.preventDefault()
     setBusy(true)
     setMsg('')
-    const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password })
+    const { error } = await sb.auth.signInWithPassword({ email: toAuthEmail(email), password })
     setBusy(false)
-    if (error) setMsg('ログインできませんでした。メールアドレスとパスワードを確認してください。')
+    if (error) setMsg('ログインできませんでした。ニックネーム（またはメールアドレス）とパスワードを確認してください。')
   }
 
   const signup = async (e: React.FormEvent) => {
     e.preventDefault()
     setMsg('')
+    const nick = !isEmailInput(email)
+    if (nick) {
+      const p = nickProblem(email)
+      if (p) return setMsg(p)
+    }
     if (password.length < 8) return setMsg('パスワードは8文字以上にしてください。')
     if (password !== password2) return setMsg('確認用のパスワードが一致しません。')
     setBusy(true)
     try {
-      const { data, error } = await sb.auth.signUp({ email: email.trim(), password })
+      const { data, error } = await sb.auth.signUp({ email: toAuthEmail(email), password })
       if (error) {
         if (/registered|exists/i.test(error.message))
-          return setMsg('このメールアドレスはすでに登録されています。「ログイン」から入ってください。')
+          return setMsg(
+            nick
+              ? 'このニックネームはすでに使われています。自分のものなら「ログイン」から、違うなら別のニックネームにしてください。'
+              : 'このメールアドレスはすでに登録されています。「ログイン」から入ってください。',
+          )
         throw error
       }
       if (!data.session) return setMsg('確認メールを送りました。メールのリンクを開いてから、ログインしてください。')
@@ -71,8 +81,8 @@ export function Login() {
       {tab === 'login' ? (
         <form onSubmit={login}>
           <label>
-            メールアドレス
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" autoCapitalize="none" />
+            ニックネーム または メールアドレス
+            <input required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
           </label>
           <label>
             パスワード
@@ -85,8 +95,9 @@ export function Login() {
       ) : (
         <form onSubmit={signup}>
           <label>
-            メールアドレス
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" autoCapitalize="none" />
+            ニックネーム または メールアドレス
+            <input required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+            <span className="fine">ニックネームは2〜20文字（ひらがな・漢字・英数字OK、空白なし）。ほかの人と同じものは使えません</span>
           </label>
           <label>
             パスワード（8文字以上・自分で決める）
@@ -136,7 +147,7 @@ export function WaitApproval({ email, onApproved }: { email: string; onApproved:
         <p className="wait-title">登録を受け付けました</p>
         <p>先生が登録を確認するので、お待ちください。</p>
         <p>承認されない場合は、先生に知らせてください。</p>
-        <p className="fine">登録したメールアドレス：{email}</p>
+        <p className="fine">登録した{isNickAccount(email) ? 'ニックネーム' : 'メールアドレス'}：{displayName(email)}</p>
       </div>
       <button className="primary wide" disabled={checking} onClick={() => void check()}>
         {checking ? '確認中…' : '承認されたか確かめる'}
