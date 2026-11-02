@@ -409,6 +409,8 @@ function SpellQ({ q, phase, onAnswer }: QProps) {
             onChange={(e) => setVal(e.target.value)}
             disabled={answered}
             autoCapitalize="none"
+            inputMode="email" /* 英字のキーボードを出す（iPhone はかな入力を候補から外す）。type は text のまま */
+            enterKeyHint="done"
             autoCorrect="off"
             autoComplete="off"
             spellCheck={false}
@@ -473,6 +475,7 @@ function FormsQ({ q, phase, onAnswer }: QProps) {
               onChange={(e) => setVals(vals.map((v, j) => (j === k ? e.target.value : v)))}
               disabled={answered}
               autoCapitalize="none"
+              inputMode="email" /* 英字のキーボードを出す */
               autoCorrect="off"
               autoComplete="off"
               spellCheck={false}
