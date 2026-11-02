@@ -1,7 +1,9 @@
 import type { Session } from '@supabase/supabase-js'
 import { useEffect, useMemo, useState } from 'react'
 import { Home, type StartOptions } from './components/Home'
-import { Login } from './components/Login'
+import { Admin } from './components/Admin'
+import { Login, WaitApproval } from './components/Login'
+import { ChangePassword } from './components/ChangePassword'
 import { Quiz } from './components/Quiz'
 import { Result } from './components/Result'
 import { WordList } from './components/WordList'
@@ -20,6 +22,7 @@ type View =
   | { kind: 'result'; answers: Answer[]; mode: Mode | 'mix' }
   | { kind: 'list'; round: number }
   | { kind: 'settings' }
+  | { kind: 'admin' }
 
 const ALL_MODES: Mode[] = ['en2ja', 'ja2en', 'cloze', 'order', 'spell', 'forms']
 
@@ -41,7 +44,30 @@ export default function App() {
     return () => data.subscription.unsubscribe()
   }, [])
 
-  const canLoad = !supabase || !!session
+  // メンバー（許可リストに入っている）か・講師か。まだなら登録を申請する（受付中なら自動承認）
+  const [member, setMember] = useState<{ allowed: boolean; admin: boolean } | null>(null)
+  const [recheck, setRecheck] = useState(0)
+  const uid = session?.user.id
+  useEffect(() => {
+    if (!supabase || !uid) return setMember(null)
+    const sb = supabase
+    let alive = true
+    void (async () => {
+      const r = await sb.rpc('is_allowed')
+      let allowed = r.error ? true : !!r.data // 確認できないときは通す（データ自体は RLS で守られている）
+      if (!allowed) {
+        const j = await sb.rpc('request_join')
+        allowed = j.data === 'approved'
+      }
+      const a = await sb.rpc('is_admin')
+      if (alive) setMember({ allowed, admin: !a.error && !!a.data })
+    })()
+    return () => {
+      alive = false
+    }
+  }, [uid, recheck])
+
+  const canLoad = !supabase || (!!session && !!member?.allowed)
   useEffect(() => {
     if (!canLoad) return
     loadWords()
@@ -64,6 +90,8 @@ export default function App() {
 
   if (!authReady) return <div className="center">読み込み中…</div>
   if (supabase && !session) return <Login />
+  if (supabase && !member) return <div className="center">読み込み中…</div>
+  if (supabase && session && member && !member.allowed) return <WaitApproval email={session.user.email ?? ''} onApproved={() => setRecheck((n) => n + 1)} />
 
   return (
     <div className="app">
@@ -73,6 +101,11 @@ export default function App() {
             <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" width={28} height={28} />
             英単語1400
           </button>
+          {member?.admin && (
+            <button className="ghost teacher-btn" onClick={() => setView({ kind: 'admin' })}>
+              講師
+            </button>
+          )}
           <button className="ghost" onClick={() => setView({ kind: 'settings' })} aria-label="設定">
             ⚙
           </button>
@@ -94,6 +127,7 @@ export default function App() {
           <Result answers={view.answers} onHome={() => setView({ kind: 'home' })} onAgainWrong={(ids) => start({ mode: view.mode, ids })} />
         )}
         {words && view.kind === 'list' && <WordList words={words} round={view.round} onBack={() => setView({ kind: 'home' })} />}
+        {view.kind === 'admin' && session && <Admin me={session.user.email ?? ''} onBack={() => setView({ kind: 'home' })} />}
         {view.kind === 'settings' && (
           <div className="settings">
             <h2>設定</h2>
@@ -153,6 +187,12 @@ export default function App() {
                 ))}
               </select>
             </label>
+            {session && <ChangePassword />}
+            {member?.admin && (
+              <button className="ghost" onClick={() => setView({ kind: 'admin' })}>
+                講師用ページ
+              </button>
+            )}
             {session && (
               <p className="fine">
                 ログイン中：{session.user.email}
