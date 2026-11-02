@@ -17,6 +17,44 @@ import { displayName } from './account'
 import { supabase } from './supabase'
 import type { Answer, Mode, Question, Word } from './types'
 
+/** 端末に保存されているログイン（Supabase が保存したもの）。電波がないときの起動用 */
+function savedSession(): Session | null {
+  try {
+    const ref = new URL(import.meta.env.VITE_SUPABASE_URL as string).hostname.split('.')[0]
+    const s = JSON.parse(localStorage.getItem(`sb-${ref}-auth-token`) ?? 'null') as Session | null
+    return s?.refresh_token && s.user ? s : null
+  } catch {
+    return null
+  }
+}
+
+/** ブラウザに「このサイトの保存データを勝手に消さないで」と頼む（対応ブラウザのみ） */
+async function keepStorage() {
+  try {
+    await navigator.storage?.persist?.()
+  } catch {
+    /* ignore */
+  }
+}
+
+type MemberState = { allowed: boolean; admin: boolean }
+const MEMBER_KEY = 'member-cache'
+function readMemberCache(uid: string): MemberState | null {
+  try {
+    const c = JSON.parse(localStorage.getItem(MEMBER_KEY) ?? 'null') as (MemberState & { uid: string }) | null
+    return c?.uid === uid ? { allowed: c.allowed, admin: c.admin } : null
+  } catch {
+    return null
+  }
+}
+function writeMemberCache(uid: string, m: MemberState) {
+  try {
+    localStorage.setItem(MEMBER_KEY, JSON.stringify({ uid, ...m }))
+  } catch {
+    /* ignore */
+  }
+}
+
 type View =
   | { kind: 'home' }
   | { kind: 'quiz'; questions: Question[]; mode: Mode | 'mix' }
@@ -37,12 +75,34 @@ export default function App() {
 
   useEffect(() => {
     if (!supabase) return
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
+    const sb = supabase
+    // 電波が弱いとログインの更新に時間がかかるので、3秒待っても終わらなければ保存済みのログインで先に開く
+    const timer = setTimeout(() => {
+      const saved = savedSession()
+      if (saved) {
+        setSession((cur) => cur ?? saved)
+        setAuthReady(true)
+      }
+    }, 3000)
+    sb.auth.getSession().then(({ data }) => {
+      clearTimeout(timer)
+      // 電波がなく、ログインの更新ができなかっただけなら、保存済みのログインで続ける（ログイン画面を出さない）
+      setSession(data.session ?? savedSession())
       setAuthReady(true)
     })
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
-    return () => data.subscription.unsubscribe()
+    const { data } = sb.auth.onAuthStateChange((e, s) => {
+      // 通信の失敗でログインが外れたように見えても、保存済みのログインがあれば保つ（本当のログアウト時だけ外す）
+      setSession(s ?? (e === 'SIGNED_OUT' ? null : savedSession()))
+      if (s) void keepStorage()
+    })
+    // 電波が戻ったらログインを更新し、学習記録を同期する
+    const online = () => void sb.auth.refreshSession().then(() => sync())
+    window.addEventListener('online', online)
+    return () => {
+      clearTimeout(timer)
+      data.subscription.unsubscribe()
+      window.removeEventListener('online', online)
+    }
   }, [])
 
   // メンバー（許可リストに入っている）か・講師か。まだなら登録を申請する（受付中なら自動承認）
@@ -53,15 +113,21 @@ export default function App() {
     if (!supabase || !uid) return setMember(null)
     const sb = supabase
     let alive = true
+    // 前回の確認結果があれば、まずそれで開く（電波が弱くても待たせない）。確認できたら更新
+    const cached = readMemberCache(uid)
+    if (cached?.allowed) setMember(cached)
     void (async () => {
       const r = await sb.rpc('is_allowed')
+      if (r.error && cached) return // 確認できなかったら前回の結果のまま
       let allowed = r.error ? true : !!r.data // 確認できないときは通す（データ自体は RLS で守られている）
       if (!allowed) {
         const j = await sb.rpc('request_join')
         allowed = j.data === 'approved'
       }
       const a = await sb.rpc('is_admin')
-      if (alive) setMember({ allowed, admin: !a.error && !!a.data })
+      const m = { allowed, admin: !a.error && !!a.data }
+      if (!r.error) writeMemberCache(uid, m)
+      if (alive) setMember(m)
     })()
     return () => {
       alive = false
