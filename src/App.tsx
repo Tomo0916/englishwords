@@ -9,6 +9,7 @@ import { loadWords } from './data'
 import { resetAll, sync } from './progress'
 import { setVocab, shuffle, supports } from './quiz'
 import { setSettings, useSettings } from './settings'
+import { SaveAudio } from './components/SaveAudio'
 import { availableVoices, clearAudioCache, playWord } from './speech'
 import { supabase } from './supabase'
 import type { Answer, Mode, Question, Word } from './types'
@@ -124,6 +125,13 @@ export default function App() {
               </div>
               <p className="fine">準備中の声は、端末の標準の読み上げで代用します。</p>
             </div>
+            {words && (
+              <div className="save-all">
+                <span>音声の保存</span>
+                <p className="fine">Wi-Fi のときに保存しておくと、どの単語もすぐに鳴り、電波がなくても使えます（いま選んでいる声のみ）。</p>
+                <SaveAudio key={settings.voice} list={words} label="全単語の音声を保存" detail />
+              </div>
+            )}
             <label>
               4択の制限時間
               <select value={settings.timeLimit} onChange={(e) => setSettings({ timeLimit: Number(e.target.value) })}>

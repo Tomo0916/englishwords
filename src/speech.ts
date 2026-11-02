@@ -103,16 +103,6 @@ function fetchClip(path: string): Promise<Blob | null> {
   return p
 }
 
-/** すでに端末に保存されているか */
-async function isCached(path: string) {
-  if (memo.has(path)) return true
-  try {
-    return !!(await (await caches.open(CACHE)).match(cacheKey(path)))
-  } catch {
-    return false
-  }
-}
-
 /** 先読み・まとめて保存の対象になるファイル */
 async function clipPaths(words: Word[], kinds: ClipKind[]) {
   await loadReady()
@@ -144,12 +134,17 @@ export async function prefetchWords(words: Word[], kinds: ClipKind[] = ['w', 'wj
   await fetchMany(paths, 4)
 }
 
-/** 単語の音声がどれだけ端末に保存されているか */
+/** 単語の音声がどれだけ端末に保存されているか（保存済みの一覧を一度だけ読んで数える） */
 export async function cachedCount(words: Word[]) {
   const paths = await clipPaths(words, CLIP_KINDS)
-  let n = 0
-  for (const p of paths) if (await isCached(p)) n++
-  return { done: n, total: paths.length }
+  let saved = new Set<string>()
+  try {
+    const prefix = `${location.origin}/__audio__/`
+    saved = new Set((await (await caches.open(CACHE)).keys()).map((r) => decodeURIComponent(r.url.slice(prefix.length))))
+  } catch {
+    /* ignore */
+  }
+  return { done: paths.filter((p) => saved.has(p)).length, total: paths.length }
 }
 
 /** 単語の音声をすべて端末に保存する（ROUND ごとの「音声を保存」ボタン）。進み具合を onProgress で知らせる */
