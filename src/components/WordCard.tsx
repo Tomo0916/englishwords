@@ -4,6 +4,7 @@ import { cleanForm, highlightJa, wordLabel } from '../quiz'
 import { playExample, playWord } from '../speech'
 import type { Level, Word } from '../types'
 import { ReportButton } from './Report'
+import { Volume2 } from '../icons'
 
 const WARN: Record<string, string> = { accent: 'アクセント', pronunciation: '発音', usage: '語法', polysemy: '多義' }
 
@@ -43,10 +44,7 @@ export function SpeakButton({ w, kind = 'word', withJa = true, label }: { w: Wor
         void (kind === 'word' ? playWord(w, withJa) : playExample(w, withJa))
       }}
     >
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" />
-        <path d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" />
-      </svg>
+      <Volume2 />
     </button>
   )
 }

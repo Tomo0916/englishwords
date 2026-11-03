@@ -4,6 +4,7 @@ import { prefetchWords } from '../speech'
 import type { Word } from '../types'
 import { SaveAudio } from './SaveAudio'
 import { Checks, SpeakButton, WordCard } from './WordCard'
+import { ArrowLeft } from '../icons'
 
 export function WordList({ words, round, onBack }: { words: Word[]; round: number; onBack: () => void }) {
   const list = useMemo(() => words.filter((w) => w.round === round), [words, round])
@@ -54,7 +55,7 @@ function ListTop({ round, onBack, hide, setHide }: { round: number; onBack: () =
   return (
     <div className="list-top">
       <button className="ghost" onClick={onBack}>
-        ← 戻る
+        <ArrowLeft size={18} /> 戻る
       </button>
       <h2>{round === 13 ? '付録' : `ROUND ${round}`}</h2>
       <label className="toggle">

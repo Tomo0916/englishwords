@@ -20,6 +20,7 @@ import { useSettings } from '../settings'
 import { playExample, playWord, prefetchWords, stopSpeaking } from '../speech'
 import type { Answer, Mode, Question, Word } from '../types'
 import { SpeakButton, WordCard } from './WordCard'
+import { CircleCheck, CircleX, X } from '../icons'
 
 interface Props {
   questions: Question[]
@@ -120,7 +121,7 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
     <div className="quiz">
       <div className="quiz-top">
         <button className="ghost" onClick={() => onQuit(answers)} aria-label="中断">
-          ✕
+          <X />
         </button>
         <div className="bar" aria-hidden>
           <div style={{ width: `${(pos / queue.length) * 100}%` }} />
@@ -141,7 +142,10 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
 
       {fb && (
         <div className={`feedback ${fb.correct ? 'ok' : 'ng'}`}>
-          <div className="verdict">{fb.correct ? '◯ 正解' : '✕ 不正解'}</div>
+          <div className="verdict">
+            {fb.correct ? <CircleCheck size={22} /> : <CircleX size={22} />}
+            {fb.correct ? '正解' : '不正解'}
+          </div>
           {!fb.correct && (
             <>
               <WordCard w={q.word} context={`クイズ：${MODE_LABEL[q.mode]}`} />

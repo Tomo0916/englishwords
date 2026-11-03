@@ -2,6 +2,8 @@ import type { Session } from '@supabase/supabase-js'
 import { useEffect, useMemo, useState } from 'react'
 import { Home, type StartOptions } from './components/Home'
 import { Admin } from './components/Admin'
+import { News } from './components/News'
+import { hasUnread } from './changelog'
 import { Login, WaitApproval } from './components/Login'
 import { ChangePassword } from './components/ChangePassword'
 import { Quiz } from './components/Quiz'
@@ -16,6 +18,7 @@ import { availableVoices, clearAudioCache, playWord } from './speech'
 import { displayName } from './account'
 import { supabase } from './supabase'
 import type { Answer, Mode, Question, Word } from './types'
+import { ArrowLeft, Bell, Settings } from './icons'
 
 /** 端末に保存されているログイン（Supabase が保存したもの）。電波がないときの起動用 */
 function savedSession(): Session | null {
@@ -62,6 +65,7 @@ type View =
   | { kind: 'list'; round: number }
   | { kind: 'settings' }
   | { kind: 'admin' }
+  | { kind: 'news' }
 
 const ALL_MODES: Mode[] = ['en2ja', 'ja2en', 'cloze', 'order', 'spell', 'forms']
 
@@ -134,6 +138,10 @@ export default function App() {
     }
   }, [uid, recheck])
 
+  // お知らせの未読（ベルの赤い点）。講師かどうかが分かってから判定
+  const [unread, setUnread] = useState(false)
+  useEffect(() => setUnread(hasUnread(!!member?.admin)), [member?.admin])
+
   // 講師ボタンの数字（承認待ち＋未対応の修正リクエスト）
   const [teacherBadge, setTeacherBadge] = useState(0)
   const [badgeTick, setBadgeTick] = useState(0)
@@ -194,8 +202,12 @@ export default function App() {
               {teacherBadge > 0 && <span className="count-badge">{teacherBadge}</span>}
             </button>
           )}
+          <button className={`ghost news-btn ${member?.admin ? '' : 'solo'}`} onClick={() => (setView({ kind: 'news' }), setUnread(false))} aria-label="お知らせ">
+            <Bell />
+            {unread && <span className="dot" />}
+          </button>
           <button className="ghost" onClick={() => setView({ kind: 'settings' })} aria-label="設定">
-            ⚙
+            <Settings />
           </button>
         </header>
       )}
@@ -215,6 +227,7 @@ export default function App() {
           <Result answers={view.answers} onHome={() => setView({ kind: 'home' })} onAgainWrong={(ids) => start({ mode: view.mode, ids })} />
         )}
         {words && view.kind === 'list' && <WordList words={words} round={view.round} onBack={() => setView({ kind: 'home' })} />}
+        {view.kind === 'news' && <News admin={!!member?.admin} onBack={() => setView({ kind: 'home' })} />}
         {view.kind === 'admin' && session && <Admin me={session.user.email ?? ''} words={words} onBack={() => (setView({ kind: 'home' }), setBadgeTick((n) => n + 1))} />}
         {view.kind === 'settings' && (
           <div className="settings">
@@ -301,7 +314,7 @@ export default function App() {
               学習記録をリセット
             </button>
             <button className="ghost" onClick={() => setView({ kind: 'home' })}>
-              ← 戻る
+              <ArrowLeft size={18} /> 戻る
             </button>
           </div>
         )}

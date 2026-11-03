@@ -3,6 +3,7 @@ import { getAll, getSyncState, isDue, subscribe } from '../progress'
 import { MODE_LABEL, supports } from '../quiz'
 import { setSettings, useSettings } from '../settings'
 import type { Mode, Word } from '../types'
+import { ChevronRight } from '../icons'
 
 export type Filter = 'all' | 'due' | 'weak' | 'new'
 
@@ -118,7 +119,7 @@ export function Home({ words, onStart, onList }: { words: Word[]; onStart: (o: S
       <RoundMeter words={inRound} progress={progress} />
       {round !== 'all' && (
         <button className="link" onClick={() => onList(round)}>
-          {round === 13 ? '付録' : `ROUND ${round}`} の単語一覧を見る →
+          {round === 13 ? '付録' : `ROUND ${round}`} の単語一覧を見る <ChevronRight size={16} />
         </button>
       )}
 

@@ -3,6 +3,7 @@ import { displayName, isNickAccount, toAuthEmail } from '../account'
 import { supabase } from '../supabase'
 import type { Word } from '../types'
 import { AdminReports } from './AdminReports'
+import { ArrowLeft, Play, Square } from '../icons'
 
 type Request = { email: string; status: 'pending' | 'rejected'; created_at: string }
 type Member = { email: string; note: string | null; is_admin: boolean; created_at: string; last_sign_in_at: string | null; registered: boolean }
@@ -77,7 +78,7 @@ export function Admin({ me, words, onBack }: { me: string; words: Word[] | null;
     <div className="admin">
       <div className="list-top">
         <button className="ghost" onClick={onBack}>
-          ← 戻る
+          <ArrowLeft size={18} /> 戻る
         </button>
         <h2>講師用ページ</h2>
       </div>
@@ -105,11 +106,11 @@ export function Admin({ me, words, onBack }: { me: string; words: Word[] | null;
         {open != null &&
           (open ? (
             <button className="stop-btn" disabled={busy} onClick={() => void run(sb.rpc('admin_set_signup', { p_open: false }))}>
-              ■ 受付を停止する
+              <Square size={18} fill="currentColor" /> 受付を停止する
             </button>
           ) : (
             <button className="start-btn" disabled={busy} onClick={() => void run(sb.rpc('admin_set_signup', { p_open: true }))}>
-              ▶ 新規登録の受付を開始する
+              <Play size={18} fill="currentColor" /> 新規登録の受付を開始する
             </button>
           ))}
         <p className="fine">
