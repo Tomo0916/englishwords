@@ -18,6 +18,7 @@ import { availableVoices, clearAudioCache, playWord } from './speech'
 import { displayName } from './account'
 import { supabase } from './supabase'
 import type { Answer, Mode, Question, Word } from './types'
+import { ArrowLeft, Bell, Settings } from './icons'
 
 /** 端末に保存されているログイン（Supabase が保存したもの）。電波がないときの起動用 */
 function savedSession(): Session | null {
@@ -137,7 +138,7 @@ export default function App() {
     }
   }, [uid, recheck])
 
-  // お知らせの未読（🔔の赤い点）。講師かどうかが分かってから判定
+  // お知らせの未読（ベルの赤い点）。講師かどうかが分かってから判定
   const [unread, setUnread] = useState(false)
   useEffect(() => setUnread(hasUnread(!!member?.admin)), [member?.admin])
 
@@ -202,10 +203,11 @@ export default function App() {
             </button>
           )}
           <button className={`ghost news-btn ${member?.admin ? '' : 'solo'}`} onClick={() => (setView({ kind: 'news' }), setUnread(false))} aria-label="お知らせ">
-            🔔{unread && <span className="dot" />}
+            <Bell />
+            {unread && <span className="dot" />}
           </button>
           <button className="ghost" onClick={() => setView({ kind: 'settings' })} aria-label="設定">
-            ⚙
+            <Settings />
           </button>
         </header>
       )}
@@ -312,7 +314,7 @@ export default function App() {
               学習記録をリセット
             </button>
             <button className="ghost" onClick={() => setView({ kind: 'home' })}>
-              ← 戻る
+              <ArrowLeft size={18} /> 戻る
             </button>
           </div>
         )}

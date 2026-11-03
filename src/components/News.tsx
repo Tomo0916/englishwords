@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { lastSeen, markSeen, newsFor } from '../changelog'
+import { ArrowLeft } from '../icons'
 
 const day = (d: string) => {
   const [y, m, dd] = d.split('-').map(Number)
@@ -18,7 +19,7 @@ export function News({ admin, onBack }: { admin: boolean; onBack: () => void }) 
     <div className="news">
       <div className="list-top">
         <button className="ghost" onClick={onBack}>
-          ← 戻る
+          <ArrowLeft size={18} /> 戻る
         </button>
         <h2>お知らせ</h2>
       </div>

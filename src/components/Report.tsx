@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { wordLabel } from '../quiz'
 import { supabase } from '../supabase'
 import type { Word } from '../types'
+import { Flag } from '../icons'
 
 export const REPORT_CATEGORIES = ['意味・訳', '例文', '例文の和訳', '穴埋め・並び替えの答え', '発音・音声', '発音記号・カナ', '活用形・関連語', 'その他'] as const
 
@@ -40,7 +41,7 @@ export function ReportButton({ w, context }: { w: Word; context?: string }) {
   return (
     <>
       <button className="report-link" onClick={(e) => (e.stopPropagation(), setOpen(true))}>
-        ⚑ 修正リクエスト
+        <Flag size={14} /> 修正リクエスト
       </button>
       {open && (
         <div className="sheet-backdrop" onClick={close}>

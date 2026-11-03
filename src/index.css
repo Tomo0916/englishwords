@@ -313,3 +313,10 @@ input.wrong { border-color: var(--ng) !important; background: var(--ng-soft) !im
 .news-head { display: flex; gap: 8px; align-items: center; color: var(--ink-2); font-size: 0.8rem; }
 .news-entry h3 { margin: 4px 0 8px; font-size: 1rem; color: var(--ink); }
 .news-entry ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; font-size: 0.92rem; line-height: 1.6; }
+
+/* ---------- アイコン（Lucide） ---------- */
+.icon { display: inline-block; vertical-align: -0.2em; flex: none; }
+.topbar .ghost { display: inline-flex; align-items: center; justify-content: center; }
+.list-top .ghost, .start-btn, .stop-btn, .report-link { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.verdict { display: flex; align-items: center; gap: 6px; }
+.quiz-top .ghost { display: inline-flex; align-items: center; }
