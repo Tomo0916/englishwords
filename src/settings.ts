@@ -11,10 +11,12 @@ export interface Settings {
   voice: string
   /** 英語のあとに日本語の意味・和訳も読む */
   readJa: boolean
+  /** 正解したら自動で次の問題へ進む */
+  autoNext: boolean
 }
 
 const KEY = 'settings-v1'
-const DEFAULTS: Settings = { autoSpeak: true, timeLimit: 0, count: 20, slowSec: 5, voice: 'female', readJa: true }
+const DEFAULTS: Settings = { autoSpeak: true, timeLimit: 0, count: 20, slowSec: 5, voice: 'female', readJa: true, autoNext: true }
 
 let current: Settings = (() => {
   try {

@@ -240,6 +240,10 @@ export default function App() {
               <input type="checkbox" checked={settings.readJa} onChange={(e) => setSettings({ readJa: e.target.checked })} />
               英語のあとに日本語（意味・和訳）も読む
             </label>
+            <label className="toggle">
+              <input type="checkbox" checked={settings.autoNext} onChange={(e) => setSettings({ autoNext: e.target.checked })} />
+              正解したら自動で次の問題へ進む（クイズ画面のスイッチでも切り替えられます）
+            </label>
             <div className="voice-pick">
               <span>声</span>
               <div className="seg">

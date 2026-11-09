@@ -16,7 +16,7 @@ import {
   targetSurface,
   wordLabel,
 } from '../quiz'
-import { useSettings } from '../settings'
+import { setSettings, useSettings } from '../settings'
 import { playExample, playWord, prefetchWords, stopSpeaking } from '../speech'
 import type { Answer, Mode, Question, Word } from '../types'
 import { SpeakButton, WordCard } from './WordCard'
@@ -93,13 +93,13 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
     [phase, q, answers, pos, settings],
   )
 
-  // 正解ならすぐ次へ（高速モード）
+  // 正解ならすぐ次へ（高速モード）。「自動で次へ」がオフなら、次へボタンを待つ
   useEffect(() => {
-    if (phase.kind === 'feedback' && phase.correct) {
+    if (phase.kind === 'feedback' && phase.correct && settings.autoNext) {
       const t = window.setTimeout(() => next(answers), q?.mode === 'order' || q?.mode === 'cloze' ? 1400 : 650)
       return () => window.clearTimeout(t)
     }
-  }, [phase, next, answers, q])
+  }, [phase, next, answers, q, settings.autoNext])
 
   // キーボード：Enter / Space で次へ
   useEffect(() => {
@@ -135,6 +135,13 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
         <span>
           {wordLabel(q.word)}・p.{q.word.page}
         </span>
+        <label className="switch-label">
+          自動で次へ
+          <span className="switch">
+            <input type="checkbox" role="switch" checked={settings.autoNext} onChange={(e) => setSettings({ autoNext: e.target.checked })} />
+            <span aria-hidden />
+          </span>
+        </label>
         <span className="score">正解 {done}</span>
       </div>
 
@@ -146,7 +153,7 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
             {fb.correct ? <CircleCheck size={22} /> : <CircleX size={22} />}
             {fb.correct ? '正解' : '不正解'}
           </div>
-          {!fb.correct && (
+          {(!fb.correct || !settings.autoNext) && (
             <>
               <WordCard w={q.word} context={`クイズ：${MODE_LABEL[q.mode]}`} />
               <button className="primary wide" onClick={() => next(answers)} autoFocus>

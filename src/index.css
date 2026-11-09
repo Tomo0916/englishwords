@@ -320,3 +320,14 @@ input.wrong { border-color: var(--ng) !important; background: var(--ng-soft) !im
 .list-top .ghost, .start-btn, .stop-btn, .report-link { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .verdict { display: flex; align-items: center; gap: 6px; }
 .quiz-top .ghost { display: inline-flex; align-items: center; }
+
+/* ---------- スイッチ（自動で次へ） ---------- */
+.switch-label { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; cursor: pointer; white-space: nowrap; }
+.quiz-meta .switch-label + .score { margin-left: 0; }
+.switch { position: relative; display: inline-block; width: 36px; height: 22px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background 0.15s; }
+.switch span::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.25); transition: transform 0.15s; }
+.switch input:checked + span { background: var(--ok); }
+.switch input:checked + span::after { transform: translateX(14px); }
+.switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
