@@ -331,3 +331,8 @@ input.wrong { border-color: var(--ng) !important; background: var(--ng-soft) !im
 .switch input:checked + span { background: var(--ok); }
 .switch input:checked + span::after { transform: translateX(14px); }
 .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 自動で次へ：満ちていくボタン */
+.auto-next { position: relative; overflow: hidden; margin-top: 4px; background: color-mix(in srgb, var(--accent) 55%, var(--bg)); }
+.auto-next-fill { position: absolute; inset: 0; background: var(--accent); transform-origin: left; transform: scaleX(0); }
+.auto-next-label { position: relative; display: inline-flex; align-items: center; gap: 4px; }

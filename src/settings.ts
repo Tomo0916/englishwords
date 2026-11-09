@@ -13,10 +13,12 @@ export interface Settings {
   readJa: boolean
   /** 正解したら自動で次の問題へ進む */
   autoNext: boolean
+  /** 自動で次へ進むまでの待ち時間 */
+  autoNextSpeed: 'fast' | 'normal' | 'slow'
 }
 
 const KEY = 'settings-v1'
-const DEFAULTS: Settings = { autoSpeak: true, timeLimit: 0, count: 20, slowSec: 5, voice: 'female', readJa: true, autoNext: true }
+const DEFAULTS: Settings = { autoSpeak: true, timeLimit: 0, count: 20, slowSec: 5, voice: 'female', readJa: true, autoNext: true, autoNextSpeed: 'normal' }
 
 let current: Settings = (() => {
   try {

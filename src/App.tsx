@@ -244,6 +244,24 @@ export default function App() {
               <input type="checkbox" checked={settings.autoNext} onChange={(e) => setSettings({ autoNext: e.target.checked })} />
               正解したら自動で次の問題へ進む（クイズ画面のスイッチでも切り替えられます）
             </label>
+            {settings.autoNext && (
+              <div className="voice-pick">
+                <span>次へ進むまでの時間（読み上げがあるときは、聞き終わってから）</span>
+                <div className="seg">
+                  {(
+                    [
+                      ['fast', '速い'],
+                      ['normal', 'ふつう'],
+                      ['slow', 'ゆっくり'],
+                    ] as const
+                  ).map(([k, label]) => (
+                    <button key={k} className={settings.autoNextSpeed === k ? 'on' : ''} onClick={() => setSettings({ autoNextSpeed: k })}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="voice-pick">
               <span>声</span>
               <div className="seg">
