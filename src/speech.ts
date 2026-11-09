@@ -19,16 +19,20 @@ const pickVoice = (lang: string) => {
 
 export const canSpeak = () => typeof window !== 'undefined' && 'speechSynthesis' in window
 
+// 標準の読み上げは長さが分からないので、文字数から見積もる（進み具合の表示用）
+let synthEst: { start: number; ms: number } | null = null
+
 function synthSpeak(text: string, lang: 'en-US' | 'ja-JP'): Promise<void> {
   return new Promise((resolve) => {
     if (!canSpeak()) return resolve()
+    synthEst = { start: performance.now(), ms: Math.max(800, text.length * (lang === 'ja-JP' ? 150 : 70)) }
     const u = new SpeechSynthesisUtterance(text)
     u.lang = lang
     const v = pickVoice(lang)
     if (v) u.voice = v
     u.rate = lang === 'en-US' ? 0.9 : 1
-    u.onend = () => resolve()
-    u.onerror = () => resolve()
+    u.onend = () => ((synthEst = null), resolve())
+    u.onerror = () => ((synthEst = null), resolve())
     speechSynthesis.speak(u)
   })
 }
@@ -183,6 +187,13 @@ function playUrl(url: string, token: number): Promise<void> {
 
 let playToken = 0
 
+/** いま鳴っている音声の進み具合（秒）。鳴っていなければ null */
+export function playbackProgress(): { t: number; d: number } | null {
+  if (audioEl && !audioEl.paused && Number.isFinite(audioEl.duration) && audioEl.duration > 0) return { t: audioEl.currentTime, d: audioEl.duration }
+  if (synthEst) return { t: Math.min((performance.now() - synthEst.start) / 1000, synthEst.ms / 1000), d: synthEst.ms / 1000 }
+  return null
+}
+
 /** 再生中の音声を止める */
 export function stopSpeaking() {
   playToken++
@@ -191,6 +202,7 @@ export function stopSpeaking() {
     audioEl.onended = audioEl.onerror = null
   }
   if (canSpeak()) speechSynthesis.cancel()
+  synthEst = null
 }
 
 async function playClips(w: Word, kinds: ClipKind[]) {

@@ -16,17 +16,54 @@ import {
   targetSurface,
   wordLabel,
 } from '../quiz'
-import { useSettings } from '../settings'
-import { playExample, playWord, prefetchWords, stopSpeaking } from '../speech'
+import { setSettings, useSettings } from '../settings'
+import { playExample, playWord, playbackProgress, prefetchWords, stopSpeaking } from '../speech'
 import type { Answer, Mode, Question, Word } from '../types'
 import { SpeakButton, WordCard } from './WordCard'
-import { CircleCheck, CircleX, X } from '../icons'
+import { ChevronRight, CircleCheck, CircleX, X } from '../icons'
 
 interface Props {
   questions: Question[]
   pool: Word[]
   onFinish: (answers: Answer[]) => void
   onQuit: (answers: Answer[]) => void
+}
+
+/** 読み上げが終わってから次へ進むまでの間（ミリ秒） */
+const PAUSE_AFTER_AUDIO = { fast: 300, normal: 800, slow: 1600 }
+/** 読み上げがないときに次へ進むまでの時間（ミリ秒）。例文の問題は1.5倍 */
+const WAIT_NO_AUDIO = { fast: 800, normal: 1600, slow: 3000 }
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * 自動で次へ進むまでの残りを、ボタンの色が左から満ちていく形で見せる。押せばすぐ次へ。
+ * 読み上げがあるときは、読み上げの進み具合で8割まで満ち、残り2割が読み上げ後の間。
+ */
+function AutoNextButton({ audio, waitMs, waitStart, onSkip }: { audio: boolean; waitMs: number; waitStart: number | null; onSkip: () => void }) {
+  const fill = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    let raf = 0
+    const tick = () => {
+      let f: number
+      const audioPart = audio ? 0.8 : 0
+      if (waitStart == null) {
+        const p = playbackProgress()
+        f = p ? audioPart * Math.min(1, p.t / p.d) : 0
+      } else f = audioPart + (1 - audioPart) * Math.min(1, (performance.now() - waitStart) / waitMs)
+      if (fill.current) fill.current.style.transform = `scaleX(${f})`
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [audio, waitMs, waitStart])
+  return (
+    <button className="primary wide auto-next" onClick={onSkip}>
+      <span className="auto-next-fill" ref={fill} aria-hidden />
+      <span className="auto-next-label">
+        次へ<ChevronRight size={18} />
+      </span>
+    </button>
+  )
 }
 
 type Phase = { kind: 'ask' } | { kind: 'feedback'; correct: boolean; chosen?: string }
@@ -38,6 +75,9 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
   const [phase, setPhase] = useState<Phase>({ kind: 'ask' })
   const [answers, setAnswers] = useState<Answer[]>([])
   const retries = useRef(new Map<number, number>())
+  const afterAudio = useRef<Promise<void> | null>(null)
+  // 自動で次へ：読み上げ中か、読み上げ後の待ち時間に入ったか（ボタンの進み具合の表示用）
+  const [auto, setAuto] = useState<{ audio: boolean; waitMs: number; waitStart: number | null } | null>(null)
   const started = useRef(Date.now())
   const q = queue[pos]
 
@@ -83,23 +123,39 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
           })
         }
       }
+      // 答えのあとの読み上げ（日→英は単語、穴埋め・並び替えは例文）。「自動で次へ」はこれが終わるのを待つ
+      afterAudio.current = null
+      if (settings.autoSpeak) {
+        if ((q.mode === 'cloze' || q.mode === 'order') && q.word.example) afterAudio.current = playExample(q.word, false)
+        else if (q.mode === 'ja2en') afterAudio.current = playWord(q.word, false)
+      }
       setPhase({ kind: 'feedback', correct, chosen })
-      if (q.mode === 'en2ja' || q.mode === 'ja2en' || q.mode === 'cloze') {
-        if (!settings.autoSpeak) return
-        if (q.mode === 'cloze' && q.word.example) void playExample(q.word, false)
-        else if (q.mode === 'ja2en') void playWord(q.word, false)
-      } else if (q.word.example && settings.autoSpeak && q.mode === 'order') void playExample(q.word, false)
     },
     [phase, q, answers, pos, settings],
   )
 
-  // 正解ならすぐ次へ（高速モード）
+  // 正解なら自動で次へ。読み上げがあれば最後まで聞いてから、少し間をおいて進む。
+  // 「自動で次へ」がオフなら、次へボタンを待つ
   useEffect(() => {
-    if (phase.kind === 'feedback' && phase.correct) {
-      const t = window.setTimeout(() => next(answers), q?.mode === 'order' || q?.mode === 'cloze' ? 1400 : 650)
-      return () => window.clearTimeout(t)
+    if (!(phase.kind === 'feedback' && phase.correct && settings.autoNext)) return setAuto(null)
+    let off = false
+    const audio = afterAudio.current
+    const sentence = q?.mode === 'order' || q?.mode === 'cloze'
+    const waitMs = audio ? PAUSE_AFTER_AUDIO[settings.autoNextSpeed] : WAIT_NO_AUDIO[settings.autoNextSpeed] * (sentence ? 1.5 : 1)
+    setAuto({ audio: !!audio, waitMs, waitStart: audio ? null : performance.now() })
+    void (async () => {
+      if (audio) {
+        await Promise.race([audio, sleep(15000)]) // 万一終わらなくても15秒で進む
+        if (off) return
+        setAuto({ audio: true, waitMs, waitStart: performance.now() })
+      }
+      await sleep(waitMs)
+      if (!off) next(answers)
+    })()
+    return () => {
+      off = true
     }
-  }, [phase, next, answers, q])
+  }, [phase, next, answers, q, settings.autoNext, settings.autoNextSpeed])
 
   // キーボード：Enter / Space で次へ
   useEffect(() => {
@@ -135,6 +191,13 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
         <span>
           {wordLabel(q.word)}・p.{q.word.page}
         </span>
+        <label className="switch-label">
+          自動で次へ
+          <span className="switch">
+            <input type="checkbox" role="switch" checked={settings.autoNext} onChange={(e) => setSettings({ autoNext: e.target.checked })} />
+            <span aria-hidden />
+          </span>
+        </label>
         <span className="score">正解 {done}</span>
       </div>
 
@@ -146,7 +209,7 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
             {fb.correct ? <CircleCheck size={22} /> : <CircleX size={22} />}
             {fb.correct ? '正解' : '不正解'}
           </div>
-          {!fb.correct && (
+          {(!fb.correct || !settings.autoNext) && (
             <>
               <WordCard w={q.word} context={`クイズ：${MODE_LABEL[q.mode]}`} />
               <button className="primary wide" onClick={() => next(answers)} autoFocus>
@@ -156,6 +219,7 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
           )}
         </div>
       )}
+      {fb && fb.correct && auto && <AutoNextButton {...auto} onSkip={() => next(answers)} />}
     </div>
   )
 }
