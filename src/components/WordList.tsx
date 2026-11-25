@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { meaningText } from '../quiz'
 import { prefetchWords } from '../speech'
+import { prefetchImages } from '../images'
 import type { Word } from '../types'
 import { SaveAudio } from './SaveAudio'
 import { Checks, SpeakButton, WordCard } from './WordCard'
@@ -15,6 +16,7 @@ export function WordList({ words, round, onBack }: { words: Word[]; round: numbe
   // 一覧の単語の発音（英語・意味）を裏で先読み
   useEffect(() => {
     void prefetchWords(list, ['w', 'wj'])
+    void prefetchImages(list)
   }, [list])
 
   return (

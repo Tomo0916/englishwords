@@ -5,6 +5,7 @@ import { playExample, playWord } from '../speech'
 import type { Level, Word } from '../types'
 import { ReportButton } from './Report'
 import { Volume2 } from '../icons'
+import { useWordImage } from '../images'
 
 const WARN: Record<string, string> = { accent: 'アクセント', pronunciation: '発音', usage: '語法', polysemy: '多義' }
 
@@ -51,6 +52,7 @@ export function SpeakButton({ w, kind = 'word', withJa = true, label }: { w: Wor
 
 export function WordCard({ w, compact = false, context }: { w: Word; compact?: boolean; context?: string }) {
   const [pre, ans, post] = w.example ? highlightJa(w.example.ja, w.example.answer) : ['', '', '']
+  const img = useWordImage(w)
   return (
     <article className="card">
       <header className="card-head">
@@ -61,6 +63,7 @@ export function WordCard({ w, compact = false, context }: { w: Word; compact?: b
         </div>
         <Checks id={w.id} />
       </header>
+      {img && <img className="word-img" src={img} alt="" width={300} height={360} />}
       <div className="headword">
         <h2 lang="en">{w.word}</h2>
         <SpeakButton w={w} />
