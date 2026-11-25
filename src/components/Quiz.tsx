@@ -18,6 +18,7 @@ import {
 } from '../quiz'
 import { setSettings, useSettings } from '../settings'
 import { playExample, playWord, playbackProgress, prefetchWords, stopSpeaking } from '../speech'
+import { prefetchImages } from '../images'
 import type { Answer, Mode, Question, Word } from '../types'
 import { SpeakButton, WordCard } from './WordCard'
 import { ChevronRight, CircleCheck, CircleX, X } from '../icons'
@@ -83,7 +84,9 @@ export function Quiz({ questions, pool, onFinish, onQuit }: Props) {
 
   // このセットの単語の音声を最初に裏で読み込んでおく（出題のたびに待たないように）
   useEffect(() => {
-    void prefetchWords([...new Map(questions.map((x) => [x.word.id, x.word])).values()])
+    const uniq = [...new Map(questions.map((x) => [x.word.id, x.word])).values()]
+    void prefetchWords(uniq)
+    void prefetchImages(uniq)
   }, [questions])
 
   useEffect(() => {
